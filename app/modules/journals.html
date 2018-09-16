@@ -25,7 +25,10 @@
                         .then((res) => res.json())
                         .then((data) => {
                             state.journals = data;
-                            state.activeJournalId = data.length - 1;
+                            if (state.activeJournalId === null) {
+                                state.activeJournalId = data.length;
+                                update({ action: "GET_JOURNAL", payload: state.activeJournalId })
+                            }
                             view(state)
                         })
                         .catch((err) => err);
@@ -44,6 +47,28 @@
 
                 case "SET_JOURNAL_ITEM":
                     state.activeJournalItemId = msg.payload;
+                    view(state)
+                    break;
+
+                case "SAVE_JOURNAL_ITEM":
+                    fetch("http://localhost:8080/journals", {
+                        method: "POST",
+                        headers: {
+                            "Accept": "application/json",
+                            "Content-type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            journalId: msg.payload.journalId,
+                            document: msg.payload.document,
+                            amount: msg.payload.amount
+                        }) - 1
+                    })
+                        .then(res => res.json()) // Return data.
+                        .then(data => {
+                            // display error if failed
+                            update({ action: "GET_JOURNAL", payload: state.activeJournalId })
+                        })
+                        .catch(err => err);
                     view(state)
                     break;
             }
@@ -73,8 +98,6 @@
             }
 
             function journal(data) {
-                console.log("journal")
-                console.log(data)
                 let rows = "";
                 for (let i = 0; i < data.length; i++) {
                     rows += `
@@ -97,32 +120,62 @@
                 `;
             }
 
+            function input(data) {
+                return `
+                    <input type="text" id="input-document" placholder="Документ">
+                    <input type="text" id="input-amount" placholder="Износ">
+                    <button id="button-save">Зачувај</button>
+                `;
+            }
+
             html = `
+                <div id="navigation" class="navigation">
+                    <button>&lt;&lt;</button>
+                    <button>&lt;</button>
+                    <input type="txt">
+                    <button>&gt;</button>
+                    <button>&gt;&gt;</button>
+                </div>
                 <div id="journals" class="sidebar">${journals(state.journals)}</div>
                 <div id="journal" class="content">${journal(state.journal)}</div>
+                <div id="input" class="input">${input()}</div>
                 `;
 
             document.getElementById("app").innerHTML = html;
 
             // Journals event listeners
-            document.querySelectorAll('#journals tr').forEach(e => e.addEventListener("click", (e) => { journalClickHandler(e) }));
+            document.querySelectorAll('#journals tr').forEach(el => el.addEventListener("click", (e) => { journalClickHandler(e) }));
             function journalClickHandler(e) {
                 let journalId = e.target.parentElement.dataset.id
                 update({ action: "GET_JOURNAL", payload: journalId })
             }
 
             // Journal event listeners
-            document.querySelectorAll('#journal tr').forEach(e => e.addEventListener("click", (e) => { journalItemClickHandler(e) }));
+            document.querySelectorAll('#journal tr').forEach(el => el.addEventListener("click", (e) => { journalItemClickHandler(e) }));
             function journalItemClickHandler(e) {
                 let journalItemId = e.target.parentElement.dataset.id
                 update({ action: "SET_JOURNAL_ITEM", payload: journalItemId })
+            }
+
+            // Save journal item
+            document.getElementById("button-save").addEventListener("click", () => { saveButtonClickHandler() })
+            function saveButtonClickHandler() {
+                let doc = document.getElementById("input-document").value;
+                let amount = document.getElementById("input-amount").value;
+                update({
+                    action: "SAVE_JOURNAL_ITEM",
+                    payload: {
+                        journalId: state.activeJournalId,
+                        document: doc,
+                        amount: amount
+                    }
+                });
             }
 
             console.log(JSON.stringify(state))
         }
 
         update({ action: "GET_JOURNALS" })
-        update({ action: "GET_JOURNAL", payload: 5 })
         view(state)
     </script>
 
