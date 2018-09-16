@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Најава</title>
+    <link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+
+<body>
+    <div id="app" class="container">
+        <div class="login-form">
+            <h1>nano</h1>
+            <br><br>
+            <input type="text" id="input-username" placeholder="Корисник">
+            <br><br>
+            <input type="password" id="input-password" placeholder="Лозинка">
+            <br><br>
+            <button style="justify-self: center;" id="button-login">Најава</button>
+            <br><br>
+            <input type="text" id="input-server" placeholder="Сервер">
+            <br><br>
+            <div style="color:red;" id="message-box"></div>
+        </div>
+    </div>
+
+    <script>
+
+        const { remote } = require('electron');
+        var ipcRenderer = require("electron").ipcRenderer;
+
+        function login() {
+            let username = document.getElementById("input-username").value;
+            let password = document.getElementById("input-password").value;
+
+            fetch("http://localhost:8080/authenticate", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-type": "application/json"
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+                .then(res => res.json()) // Return data.
+                .then(data => {
+                    console.log(data)
+                    if (data.success) {
+                        localStorage.setItem("token", data.token);
+                        localStorage.setItem("user", data.user);
+                        ipcRenderer.send('authenticated', true);
+                    } else {
+                        document.getElementById("message-box").innerHTML = data.message
+                    }
+                    console.log(localStorage)
+                })
+                .catch(err => {
+                    console.log(err.message)
+                });
+        }
+
+        document.getElementById("input-username").addEventListener("keypress", (e) => {
+            let key = e.which || e.keyCode;
+            if (key === 13) {
+                document.getElementById("input-password").focus();
+            }
+        })
+
+        document.getElementById("input-password").addEventListener("keypress", (e) => {
+            let key = e.which || e.keyCode;
+            if (key === 13) {
+                login()
+            }
+        })
+        document.getElementById("button-login").addEventListener("click", () => { login() })
+    </script>
+
+</body>
+
+</html>
