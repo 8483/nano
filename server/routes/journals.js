@@ -1,6 +1,11 @@
 var express = require("express");
 var router = express.Router();
 
+router.get("/journal", function(req, res) {
+  let journal = journals[journals.length - 1];
+  res.send(journal);
+});
+
 router.get("/journals", function(req, res) {
   console.log(journals);
   res.send(journals);
@@ -15,10 +20,10 @@ router.get("/journals/:journalId", function(req, res) {
 
 router.post("/journals", function(req, res) {
   journalItems.push({
+    id: journalItems.length,
     journalId: req.body.journalId,
-    product: req.body.product,
-    quantity: req.body.quantity,
-    price: req.body.price
+    document: req.body.document,
+    amount: req.body.amount
   });
   res.status(200).send({ message: `Success!` });
 });

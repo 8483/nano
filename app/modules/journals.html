@@ -10,25 +10,43 @@
     <div id="app" class="container"></div>
     <script>
 
+        const { remote } = require('electron');
+        var ipcRenderer = require("electron").ipcRenderer;
+
+        function openModal() {
+            let win = new remote.BrowserWindow({
+                parent: remote.getCurrentWindow(),
+                modal: true,
+                width: 600,
+                height: 400,
+            })
+
+            win.webContents.openDevTools();
+            var theUrl = 'file://' + __dirname + '/modal.html'
+
+            win.setMenu(null) // Remove the mainWindow menu
+            win.loadURL(theUrl);
+        }
+
         state = {
-            journals: [],
             activeJournalId: null,
+            lastJournalId: null,
             journal: [],
             activeJournalItemId: null
         }
 
+
+        // CAN THIS BE REPLACED WITH IPCRENDERER MESSAGES?
         function update(msg) {
             switch (msg.action) {
 
-                case "GET_JOURNALS":
-                    fetch(`http://localhost:8080/journals`)
+                case "GET_LAST_JOURNAL":
+                    fetch(`http://localhost:8080/journal`)
                         .then((res) => res.json())
                         .then((data) => {
-                            state.journals = data;
-                            if (state.activeJournalId === null) {
-                                state.activeJournalId = data.length;
-                                update({ action: "GET_JOURNAL", payload: state.activeJournalId })
-                            }
+                            state.activeJournalId = data.id;
+                            state.lastJournalId = data.id;
+                            update({ action: "GET_JOURNAL", payload: state.activeJournalId })
                             view(state)
                         })
                         .catch((err) => err);
@@ -61,41 +79,20 @@
                             journalId: msg.payload.journalId,
                             document: msg.payload.document,
                             amount: msg.payload.amount
-                        }) - 1
+                        })
                     })
                         .then(res => res.json()) // Return data.
                         .then(data => {
                             // display error if failed
                             update({ action: "GET_JOURNAL", payload: state.activeJournalId })
+                            view(state)
                         })
                         .catch(err => err);
-                    view(state)
                     break;
             }
         }
 
         function view(state) {
-
-            function journals(data) {
-                let rows = "";
-                for (let i = 0; i < data.length; i++) {
-                    rows += `
-                        <tr data-id="${data[i].id}" ${data[i].id == state.activeJournalId ? `class="active-row"` : ""}>
-                            <td>${data[i].code}</td>
-                        </tr>`;
-                }
-
-                return `
-                    <table>
-                        <thead>
-                            <tr>
-                                <td>Шифра</td>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                `;
-            }
 
             function journal(data) {
                 let rows = "";
@@ -130,27 +127,21 @@
 
             html = `
                 <div id="navigation" class="navigation">
+                    <button>+</button>
                     <button>&lt;&lt;</button>
-                    <button>&lt;</button>
-                    <input type="txt">
-                    <button>&gt;</button>
+                    <button id="document-previous">&lt;</button>
+                    <input type="txt" id="search-box" value="${state.activeJournalId}">
+                    <button id="document-next">&gt;</button>
                     <button>&gt;&gt;</button>
+                    <button>X</button>
                 </div>
-                <div id="journals" class="sidebar">${journals(state.journals)}</div>
                 <div id="journal" class="content">${journal(state.journal)}</div>
                 <div id="input" class="input">${input()}</div>
                 `;
 
             document.getElementById("app").innerHTML = html;
 
-            // Journals event listeners
-            document.querySelectorAll('#journals tr').forEach(el => el.addEventListener("click", (e) => { journalClickHandler(e) }));
-            function journalClickHandler(e) {
-                let journalId = e.target.parentElement.dataset.id
-                update({ action: "GET_JOURNAL", payload: journalId })
-            }
-
-            // Journal event listeners
+            // Journal item event listeners, set active journal item
             document.querySelectorAll('#journal tr').forEach(el => el.addEventListener("click", (e) => { journalItemClickHandler(e) }));
             function journalItemClickHandler(e) {
                 let journalItemId = e.target.parentElement.dataset.id
@@ -172,10 +163,42 @@
                 });
             }
 
-            console.log(JSON.stringify(state))
+            // Search listener
+            document.getElementById("search-box").addEventListener("click", () => {
+                openModal();
+            })
+
+            // Document navigation
+            document.getElementById("document-next").addEventListener("click", () => {
+                if (state.activeJournalId < state.lastJournalId) {
+                    update({ action: "GET_JOURNAL", payload: state.activeJournalId + 1 })
+                }
+            })
+
+            document.getElementById("document-previous").addEventListener("click", () => {
+                console.log('click')
+                if (state.activeJournalId >= 2) {
+                    update({ action: "GET_JOURNAL", payload: state.activeJournalId - 1 })
+                }
+            })
+
+            let currentState = `activeJournalId: ${state.activeJournalId}, activeJournalItemId: ${state.activeJournalItemId}`
+            // console.log(JSON.stringify(state))
+            console.log(currentState)
         }
 
-        update({ action: "GET_JOURNALS" })
+        // Won't work directly
+        // ipcRenderer.on('set-journal-active-id', (e, args) => {
+        //     console.log(e, args);
+        //     // e.sender.send("manipulatedData", manData); // send message back to sender
+        // })
+
+        ipcRenderer.on('set-journal-active-id', (e, args) => {
+            console.log(args);  // Prints 'foo!'
+            update({ action: "GET_JOURNAL", payload: args })
+        })
+
+        update({ action: "GET_LAST_JOURNAL" })
         view(state)
     </script>
 

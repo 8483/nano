@@ -1,10 +1,11 @@
 const electron = require("electron");
 const { app, BrowserWindow, Menu } = electron;
 require("electron-reload")(__dirname);
+var ipcMain = require("electron").ipcMain;
 
-let mainWindow, window1, window2;
+let mainWindow, browserWindow;
 
-function createWindow() {
+function createMainWindow() {
   //const server = require("./server/server");
   mainWindow = new BrowserWindow({ width: 800, height: 600 });
   // mainWindow.maximize();
@@ -25,23 +26,23 @@ var windows = {
   y: 100
 };
 
-function createNewWindow(window) {
-  if (!windows.opened.includes(window)) {
-    windows.opened.push(window); // Add window to window array
+function createNewWindow(windowName) {
+  if (!windows.opened.includes(windowName)) {
+    windows.opened.push(windowName); // Add window to window array
     let newWindow = new BrowserWindow({
-      width: 600,
-      height: 400,
+      width: 800,
+      height: 600,
       parent: mainWindow,
       x: windows.x,
       y: windows.y
     });
-    newWindow.loadURL(`file://${__dirname}/modules/${window}.html`);
+    newWindow.loadURL(`file://${__dirname}/modules/${windowName}.html`);
     newWindow.webContents.openDevTools();
     windows.x += 100;
     windows.y += 100;
     newWindow.setMenu(null); // Remove menu from child windows
     newWindow.on("closed", function() {
-      windows.opened = windows.opened.filter(win => win != window); // Return only open windows
+      windows.opened = windows.opened.filter(win => win != windowName); // Return only open windows
       newWindow = null;
       windows.x -= 100;
       windows.y -= 100;
@@ -51,12 +52,11 @@ function createNewWindow(window) {
 }
 
 // Pass in a string i.e. module name
-function openWindow(window) {
-  let win = window;
+function openWindow(windowName) {
   // Don't open the same window twice. Focus the open one instead.
-  windows.opened.includes(win)
-    ? window1.focus()
-    : (window1 = createNewWindow(win));
+  windows.opened.includes(windowName)
+    ? browserWindow.focus()
+    : (browserWindow = createNewWindow(windowName));
 }
 
 const mainMenuTemplate = [
@@ -73,4 +73,9 @@ const mainMenuTemplate = [
   }
 ];
 
-app.on("ready", createWindow);
+ipcMain.on("set-journal-active-id", (e, args) => {
+  console.log(args);
+  browserWindow.webContents.send("set-journal-active-id", args);
+});
+
+app.on("ready", createMainWindow);
