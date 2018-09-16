@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test</title>
+    <link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+
+<body>
+    <div id="app" class="container"></div>
+    <script>
+
+        state = {
+            journals: [],
+            activeJournalId: null,
+            journal: [],
+            activeJournalItemId: null
+        }
+
+        function update(msg) {
+            switch (msg.action) {
+
+                case "GET_JOURNALS":
+                    fetch(`http://localhost:8080/journals`)
+                        .then((res) => res.json())
+                        .then((data) => {
+                            state.journals = data;
+                            state.activeJournalId = data.length - 1;
+                            view(state)
+                        })
+                        .catch((err) => err);
+                    break;
+
+                case "GET_JOURNAL":
+                    fetch(`http://localhost:8080/journals/${msg.payload}`)
+                        .then((res) => res.json())
+                        .then((data) => {
+                            state.journal = data;
+                            state.activeJournalId = msg.payload
+                            view(state)
+                        })
+                        .catch((err) => err);
+                    break;
+
+                case "SET_JOURNAL_ITEM":
+                    state.activeJournalItemId = msg.payload;
+                    view(state)
+                    break;
+            }
+        }
+
+        function view(state) {
+
+            function journals(data) {
+                let rows = "";
+                for (let i = 0; i < data.length; i++) {
+                    rows += `
+                        <tr data-id="${data[i].id}" ${data[i].id == state.activeJournalId ? `class="active-row"` : ""}>
+                            <td>${data[i].code}</td>
+                        </tr>`;
+                }
+
+                return `
+                    <table>
+                        <thead>
+                            <tr>
+                                <td>Шифра</td>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                `;
+            }
+
+            function journal(data) {
+                console.log("journal")
+                console.log(data)
+                let rows = "";
+                for (let i = 0; i < data.length; i++) {
+                    rows += `
+                        <tr data-id="${data[i].id}" ${data[i].id == state.activeJournalItemId ? `class="active-row"` : ""}>
+                            <td>${data[i].document}</td>
+                            <td>${data[i].amount}</td>
+                        </tr>`;
+                }
+
+                return `
+                    <table>
+                        <thead>
+                            <tr>
+                                <td>Документ</td>
+                                <td>Износ</td>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                `;
+            }
+
+            html = `
+                <div id="journals" class="sidebar">${journals(state.journals)}</div>
+                <div id="journal" class="content">${journal(state.journal)}</div>
+                `;
+
+            document.getElementById("app").innerHTML = html;
+
+            // Journals event listeners
+            document.querySelectorAll('#journals tr').forEach(e => e.addEventListener("click", (e) => { journalClickHandler(e) }));
+            function journalClickHandler(e) {
+                let journalId = e.target.parentElement.dataset.id
+                update({ action: "GET_JOURNAL", payload: journalId })
+            }
+
+            // Journal event listeners
+            document.querySelectorAll('#journal tr').forEach(e => e.addEventListener("click", (e) => { journalItemClickHandler(e) }));
+            function journalItemClickHandler(e) {
+                let journalItemId = e.target.parentElement.dataset.id
+                update({ action: "SET_JOURNAL_ITEM", payload: journalItemId })
+            }
+
+            console.log(JSON.stringify(state))
+        }
+
+        update({ action: "GET_JOURNALS" })
+        update({ action: "GET_JOURNAL", payload: 5 })
+        view(state)
+    </script>
+
+</body>
+
+</html>
