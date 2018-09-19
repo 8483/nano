@@ -4,19 +4,21 @@
 <head>
     <title>Test</title>
     <link rel="stylesheet" type="text/css" href="../styles.css">
+    <link rel="stylesheet" type="text/css" href="../lib/flatpickr/flatpickr.css">
 </head>
 
 <body>
     <div id="app" class="container"></div>
     <script>
 
-        const { remote } = require('electron');
-        var ipcRenderer = require("electron").ipcRenderer;
+        const { remote, ipcRenderer } = require('electron');
+        const flatpickr = require("flatpickr");
+        const Macedonian = require("flatpickr/dist/l10n/mk.js").default.mk;
 
         function openModal() {
             let win = new remote.BrowserWindow({
                 parent: remote.getCurrentWindow(),
-                modal: true,
+                // modal: true, // Makes it fixed/immovable i.e. modal
                 width: 600,
                 height: 400,
             })
@@ -108,8 +110,14 @@
                     <table>
                         <thead>
                             <tr>
+                                <td>Фирма</td>
+                                <td>Датум</td>
+                                <td>Вид</td>
                                 <td>Документ</td>
-                                <td>Износ</td>
+                                <td>Конто Должи</td>
+                                <td>Конто Побарува</td>
+                                <td>Износ Должи</td>
+                                <td>Износ Побарува</td>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -119,9 +127,39 @@
 
             function input(data) {
                 return `
+                <div class="input-group">    
+                    <label for="input-company">Фирма</label>
+                    <input type="text" id="input-company" placholder="Фирма">
+                </div>
+                <div class="input-group">
+                    <label>Датум</label>
+                    <input id="input-date" placholder="Датум">
+                </div>
+                <div class="input-group">
+                    <label>Вид</label>
+                    <input type="text" id="input-journal-type" placholder="Вид">
+                </div>
+                <div class="input-group">
+                    <label>Документ</label>
                     <input type="text" id="input-document" placholder="Документ">
-                    <input type="text" id="input-amount" placholder="Износ">
-                    <button id="button-save">Зачувај</button>
+                </div>
+                <div class="input-group">
+                    <label>Конто Должи</label>
+                    <input type="text" id="input-account-debit" placholder="Конто Должи">
+                </div>
+                <div class="input-group">
+                    <label>Конто Побарува</label>
+                    <input type="text" id="input-account-credit" placholder="Конто Побарува">
+                </div>
+                <div class="input-group">
+                    <label>Износ Должи</label>
+                    <input type="text" id="input-amount-debit" placholder="Износ Должи">
+                </div>
+                <div class="input-group">
+                    <label>Износ Побарува</label>
+                    <input type="text" id="input-amount-credit" placholder="Износ Побарува">
+                </div>
+                <button id="button-save">Зачувај</button>
                 `;
             }
 
@@ -140,6 +178,13 @@
                 `;
 
             document.getElementById("app").innerHTML = html;
+
+            // Instantiate datepicker
+            flatpickr("#input-date", {
+                dateFormat: "d.m.Y",
+                allowInput: true,
+                "locale": Macedonian
+            });
 
             // Journal item event listeners, set active journal item
             document.querySelectorAll('#journal tr').forEach(el => el.addEventListener("click", (e) => { journalItemClickHandler(e) }));
@@ -185,6 +230,58 @@
             let currentState = `activeJournalId: ${state.activeJournalId}, activeJournalItemId: ${state.activeJournalItemId}`
             // console.log(JSON.stringify(state))
             console.log(currentState)
+
+            // Focusing
+
+
+
+
+            // DATE TEST START. Move into utilities
+
+            var date = document.getElementById('input-date');
+
+            function checkValue(str, max) {
+                // if input is valid (not zero)
+                if (str.charAt(0) !== '0' || str == '00') {
+                    var num = parseInt(str);
+                    // if not a number, return 1
+                    if (isNaN(num) || num <= 0 || num > max) num = 1;
+
+                    // add a leading 0
+                    str =
+                        num > parseInt(max.toString().charAt(0))
+                            && num.toString().length == 1 ?
+                            '0' + num
+                            : num.toString();
+                };
+                return str;
+            };
+
+            date.addEventListener('input', function (e) {
+                this.type = 'text';
+                var input = this.value;
+
+                // When deleting, when a . is encountered, jump 2 characters
+                if (/\.$/.test(input)) input = input.substr(0, input.length - 2);
+
+                // Split at / and remove /
+                var values = input.split('.').map(function (v) {
+                    return v.replace(/\D/g, '')
+                });
+
+                // Check parts if they exceed the ranges
+                if (values[0]) values[0] = checkValue(values[0], 31);
+                if (values[1]) values[1] = checkValue(values[1], 12);
+
+                var output = values.map(function (v, i) {
+                    return v.length == 2 && i < 2 ? v + '.' : v;
+                });
+
+                // Join array (. included inside)
+                this.value = output.join('').substr(0, 10);
+            });
+
+            // DATE TEST END
         }
 
         // Won't work directly

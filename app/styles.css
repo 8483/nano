@@ -54,6 +54,20 @@ body {
     padding: 10px;
 }
 
+.input input {
+    width: 120px;
+}
+
+.input-group {
+    float: left;
+    margin-right: 5px;
+}
+
+input,
+label {
+    display: block;
+}
+
 table {
     border-collapse: collapse;
 }

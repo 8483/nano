@@ -90,11 +90,6 @@ const mainMenuTemplate = [
     }
 ];
 
-ipcMain.on("set-journal-active-id", (e, args) => {
-    console.log(args);
-    browserWindow.webContents.send("set-journal-active-id", args);
-});
-
 ipcMain.on("authenticated", (event, args) => {
     if (args === true) {
         mainWindow.show();

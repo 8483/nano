@@ -75,18 +75,28 @@
 			function journalClickHandler(e) {
 				let journalId = e.target.parentElement.dataset.id
 				state.activeJournalId = journalId;
-				ipcRenderer.send('set-journal-active-id', journalId);
+				// ipcRenderer.send('set-journal-active-id', journalId);
+				console.log("click")
+				remote.getCurrentWindow().getParentWindow().send('set-journal-active-id', journalId)
 				view(state);
 			}
+
+			// This can be done like this in main process, but this is easier.
+			// ipcMain.on("set-journal-active-id", (e, args) => {
+			//     console.log(args);
+			//     browserWindow.webContents.send("set-journal-active-id", args);
+			// });
 
 			// Double journal click
 			document.querySelectorAll('#journals tr').forEach(el => el.addEventListener("dblclick", (e) => { journalClickHandler_close(e) }));
 			function journalClickHandler_close(e) {
 				let journalId = e.target.parentElement.dataset.id
-				ipcRenderer.send('set-journal-active-id', journalId);
+				// ipcRenderer.send('set-journal-active-id', journalId);
+				var window = remote.getCurrentWindow();
+				window.getParentWindow().send('set-journal-active-id', journalId)
+				console.log("click")
 
 				// Close the window after selecting document
-				var window = remote.getCurrentWindow();
 				window.close();
 			}
 
@@ -101,7 +111,7 @@
 			searchBox.focus();
 
 			// Filter the journals array based on input. Uses a second array to avoid losing data.
-			searchBox.addEventListener("input", (e) => {
+			searchBox.addEventListener("keyup", (e) => {
 				state.query = e.target.value
 				state.filteredJournals = state.journals.filter(item => item.code.includes(state.query));
 				view(state);
