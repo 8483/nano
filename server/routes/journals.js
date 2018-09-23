@@ -22,8 +22,13 @@ router.post("/journals", function(req, res) {
     journalItems.push({
         id: journalItems.length,
         journalId: req.body.journalId,
+        company: req.body.company,
+        date: req.body.date,
         document: req.body.document,
-        amount: req.body.amount
+        accountDebit: req.body.accountDebit,
+        accountCredit: req.body.accountCredit,
+        amountDebit: req.body.amountDebit,
+        amountCredit: req.body.amountCredit
     });
     res.status(200).send({ message: `Success!` });
 });
@@ -40,24 +45,20 @@ for (var i = 0; i < 15; i++) {
     });
 }
 
-{
-    /* Овие полиња да се симулираат
-<td>Фирма</td>
-<td>Датум</td>
-<td>Вид</td>
-<td>Документ</td>
-<td>Конто Должи</td>
-<td>Конто Побарува</td>
-<td>Износ Должи</td>
-<td>Износ Побарува</td> */
-}
-
 for (var i = 0; i < 150; i++) {
     journalItems.push({
         id: i + 1,
         journalId: Math.floor(Math.random() * journals.length + 1),
+        company: `Фирма ${Math.floor(Math.random() * 10 + 1)}`,
+        date: `${Math.floor(Math.random() * 32)}.${Math.floor(
+            Math.random() * 13
+        )}.201${Math.floor(Math.random() * 8)}`,
+        type: `Вид налог ${Math.floor(Math.random() * 10 + 1)}`,
         document: `Фактура ${Math.floor(Math.random() * 30 + 1)}`,
-        amount: Math.floor(Math.random() * 10000)
+        accountDebit: 1200 + Math.floor(Math.random() * 30 + 1),
+        accountCredit: 2200 + Math.floor(Math.random() * 30 + 1),
+        amountDebit: Math.floor(Math.random() * 10000),
+        amountCredit: Math.floor(Math.random() * 10000)
     });
 }
 
