@@ -54,19 +54,6 @@ function makeDateField(divId) {
     });
 }
 
-// Highlight clicked table row. Send a "SET_ITEM" update action.
-function addTableRowClickListeners(tableId, action) {
-    document.querySelectorAll(`${tableId} tr`).forEach(el =>
-        el.addEventListener("click", e => {
-            rowClickHandler(e);
-        })
-    );
-    function rowClickHandler(e) {
-        let rowId = e.target.parentElement.dataset.id;
-        update({ action: action, payload: rowId });
-    }
-}
-
 // on Enter, jumpr from one to another field
 function onEnterFocus(from, to) {
     document.getElementById(from).addEventListener("keypress", e => {

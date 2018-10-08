@@ -29,11 +29,23 @@
             win.loadURL(theUrl);
         }
 
+        // TODO: Refactor inputs into transaction inputs.
         state = {
             activeJournalId: null,
             lastJournalId: null,
             journal: [],
             activeJournalItemId: null,
+            focusedElement: "input-journal-company",
+            inputs: {
+                company: "",
+                date: "",
+                type: "",
+                document: "",
+                accountDebit: "",
+                accountCredit: "",
+                amountDebit: "",
+                amountCredit: ""
+            }
         }
 
         function update(msg) {
@@ -62,10 +74,19 @@
                     break;
 
                 case "SET_JOURNAL_ITEM":
-                    state.activeJournalItemId = msg.payload;
+                    console.log(msg.payload)
+                    state.activeJournalItemId = msg.payload.rowId;
+                    state.inputs = msg.payload.inputs;
                     view(state)
                     break;
 
+                case "INPUT_JOURNAL_COMPANY":
+                    // console.log(msg.payload)
+                    state.inputs.company = msg.payload
+                    view(state)
+                    break;
+
+                // Od model treba da gi zima, ne od document
                 case "SAVE_JOURNAL_ITEM":
                     fetch("http://localhost:8080/journals", {
                         method: "POST",
@@ -75,7 +96,7 @@
                         },
                         body: JSON.stringify({
                             journalId: state.activeJournalId,
-                            company: document.getElementById("input-journal-company").value,
+                            company: state.inputs.company,
                             date: document.getElementById("input-journal-date").value,
                             type: document.getElementById("input-journal-type").value,
                             document: document.getElementById("input-journal-document").value,
@@ -95,9 +116,22 @@
 
             }
             console.log(JSON.stringify(state))
+            // TODO: DALI SEKOGAS DA IMA VIEW STATE? BI TREBALO.
         }
 
         function view(state) {
+
+            function navigation(data) {
+                return `<div id="navigation" class="navigation">
+                    <button id="document-new>+</button>
+                    <button id="document-first>&lt;&lt;</button>
+                    <button id="document-previous">&lt;</button>
+                    <input type="txt" id="search-box" value="${data}">
+                    <button id="document-next">&gt;</button>
+                    <button id="document-last">&gt;&gt;</button>
+                    <button>X</button>
+                </div>`
+            }
 
             function journal(data) {
                 let rows = "";
@@ -116,88 +150,149 @@
                 }
 
                 return `
-                    <table>
-                        <thead>
-                            <tr>
-                                <td>Фирма</td>
-                                <td>Датум</td>
-                                <td>Вид</td>
-                                <td>Документ</td>
-                                <td>Конто Должи</td>
-                                <td>Конто Побарува</td>
-                                <td>Износ Должи</td>
-                                <td>Износ Побарува</td>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
+                    <div id="journal" class="content">
+                        <table class="grid">
+                            <thead>
+                                <th>Фирма</th>
+                                <th>Датум</th>
+                                <th>Вид</th>
+                                <th>Документ</th>
+                                <th>Конто Д</th>
+                                <th>Конто П</th>
+                                <th>Износ Д</th>
+                                <th>Износ П</th>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
                 `;
             }
 
             function input(data) {
                 return `
-                    <div class="input-group">    
-                        <label>Фирма</label>
-                        <input type="text" id="input-journal-company">
-                    </div>
-                    <div class="input-group">
-                        <label>Датум</label>
-                        <input id="input-journal-date" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Вид</label>
-                        <input type="text" id="input-journal-type">
-                    </div>
-                    <div class="input-group">
-                        <label>Документ</label>
-                        <input type="text" id="input-journal-document">
-                    </div>
-                    <div class="input-group">
-                        <label>Конто Должи</label>
-                        <input type="text" id="input-journal-account-debit">
-                    </div>
-                    <div class="input-group">
-                        <label>Конто Побарува</label>
-                        <input type="text" id="input-journal-account-credit">
-                    </div>
-                    <div class="input-group">
-                        <label>Износ Должи</label>
-                        <input type="text" id="input-journal-amount-debit">
-                    </div>
-                    <div class="input-group">
-                        <label>Износ Побарува</label>
-                        <input type="text" id="input-journal-amount-credit">
-                    </div>
-                    <div class="input-group">
+                    <div id="input" class="input">
+                        <div class="input-group">    
+                            <label>Фирма</label>
+                            <input type="text" id="input-journal-company" value="${data.company}" 
+                            oninput="update({action: 'INPUT_JOURNAL_COMPANY', payload: event.target.value})">
+                        </div>
+                        <div class="input-group">
+                            <label>Датум</label>
+                            <input id="input-journal-date" required value="${data.date}">
+                        </div>
+                        <div class="input-group">
+                            <label>Вид</label>
+                            <input type="text" id="input-journal-type" value="${data.type}">
+                        </div>
+                        <div class="input-group">
+                            <label>Документ</label>
+                            <input type="text" id="input-journal-document" value="${data.document}">
+                        </div>
+                        <div class="input-group">
+                            <label>Конто Должи</label>
+                            <input type="text" id="input-journal-account-debit" value="${data.accountDebit}">
+                        </div>
+                        <div class="input-group">
+                            <label>Конто Побарува</label>
+                            <input type="text" id="input-journal-account-credit" value="${data.accountCredit}">
+                        </div>
+                        <div class="input-group">
+                            <label>Износ Должи</label>
+                            <input type="text" id="input-journal-amount-debit" value="${data.amountDebit}">
+                        </div>
+                        <div class="input-group">
+                            <label>Износ Побарува</label>
+                            <input type="text" id="input-journal-amount-credit" value="${data.amountCredit}">
+                        </div>
                         <button id="button-journal-item-save">Зачувај</button>
                     </div>
                 `;
             }
 
             html = `
-                <div id="navigation" class="navigation">
-                    <button id="document-new>+</button>
-                    <button id="document-first>&lt;&lt;</button>
-                    <button id="document-previous">&lt;</button>
-                    <input type="txt" id="search-box" value="${state.activeJournalId}">
-                    <button id="document-next">&gt;</button>
-                    <button id="document-last">&gt;&gt;</button>
-                    <button>X</button>
-                </div>
-                <div id="journal" class="content">${journal(state.journal)}</div>
-                <div id="input" class="input">${input()}</div>
-                `;
+                ${navigation(state.activeJournalId)}
+                ${journal(state.journal)}
+                ${input(state.inputs)}
+            `;
 
+            // Inject i.e. render HTML 
             document.getElementById("app").innerHTML = html;
 
-            document.getElementById("input-journal-company").focus();
+            // Focus specified element from state
+            // document.getElementById(state.focusedElement).focus();
+            let focusedElement = document.getElementById(state.focusedElement);
+            // Fix for cursor (caret) jumping to beginning of text input
+            // It sets it at the end on focus after refresh
+            focusedElement.addEventListener("focus", (e) => {
+                // console.log("focus", e)
+                var len = e.target.value.length;
+                e.target.setSelectionRange(len, len);
+            })
+            focusedElement.focus();
 
             // Turn input into date input
             makeDateField('input-journal-date')
 
-            // When a row is clicked, send action
-            addTableRowClickListeners("#journal", "SET_JOURNAL_ITEM");
+            // // When a row is clicked, send action
+            // addTableRowClickListeners("#journal", "SET_JOURNAL_ITEM");
 
+            // // Highlight clicked table row. Send a "SET_ITEM" update action.
+            // function addTableRowClickListeners(tableId, action) {
+            //     document.querySelectorAll(`${tableId} tr`).forEach(el =>
+            //         el.addEventListener("click", e => {
+            //             rowClickHandler(e);
+            //         })
+            //     );
+
+            //     function rowClickHandler(e) {
+            //         console.log(e.target.parentElement.cells);
+            //         let inputs = e.target.parentElement.cells;
+            //         console.log(inputs[0].innerText);
+
+            //         let rowId = e.target.parentElement.dataset.id;
+            //         update({
+            //             action: action,
+            //             payload: {
+            //                 rowId: rowId,
+            //                 inputs: inputs
+            //             }
+            //         });
+            //     }
+            // }
+
+            // Highlight clicked table row. Send a "SET_ITEM" update action.
+            document.querySelectorAll(`#journal tr`).forEach(el =>
+                el.addEventListener("click", e => {
+                    rowClickHandler(e);
+                })
+            );
+
+            // TODO: How can this be abstracted?
+            function rowClickHandler(e) {
+                // console.log(e.target.parentElement.cells);
+                let inputs = e.target.parentElement.cells;
+                // console.log(inputs[0].innerText);
+                let rowId = e.target.parentElement.dataset.id;
+
+                update({
+                    action: "SET_JOURNAL_ITEM",
+                    payload: {
+                        rowId: rowId,
+                        inputs: {
+                            company: inputs[0].innerText,
+                            date: inputs[1].innerText,
+                            type: inputs[2].innerText,
+                            document: inputs[3].innerText,
+                            accountDebit: inputs[4].innerText,
+                            accountCredit: inputs[5].innerText,
+                            amountDebit: inputs[6].innerText,
+                            amountCredit: inputs[7].innerText
+                        }
+                    }
+                });
+            }
+
+            // TODO: How can this be further abstracted with UPDATE?
             // When enter is pressed, jump to field
             onEnterFocus("input-journal-company", "input-journal-date")
             onEnterFocus("input-journal-date", "input-journal-type")
@@ -236,6 +331,7 @@
                     update({ action: "GET_JOURNAL", payload: state.activeJournalId - 1 })
                 }
             })
+
         }
 
         // Won't work directly

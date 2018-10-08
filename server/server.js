@@ -20,6 +20,7 @@ app.use(bodyParser.urlencoded({ extended: false }))
     .use(authenticate)
     .use(journals);
 
+// ivan
 var server = app.listen(8080, function() {
     var host = server.address().address;
     var port = server.address().port;

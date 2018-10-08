@@ -20,6 +20,8 @@ body {
 .navigation {
     grid-column: 1/-1;
     grid-row: 1/2;
+    display: flex;
+    padding: 10px;
 }
 
 .search-box {
@@ -48,10 +50,38 @@ body {
     border: 1px solid #bbb;
 }
 
+/* Grid / Table */
+
+table {
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+table th {
+    position: sticky; /* This makes a header fixed/sticky */
+    top: 0px; /* This is also needed */
+    background: #ccc;
+}
+
+table td {
+    border: 1px solid #bbb;
+    padding: 5px;
+}
+
+.active-row {
+    background: #ddd;
+}
+
+/* Input */
+
 .input {
     grid-column: 1/-1;
     grid-row: 11/12;
     padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    /* align-items: center; */
+    /* align-content: center; */
 }
 
 .input input {
@@ -59,30 +89,12 @@ body {
 }
 
 .input-group {
-    float: left;
     margin-right: 5px;
 }
 
 input,
 label {
     display: block;
-}
-
-table {
-    border-collapse: collapse;
-}
-
-td {
-    border: 1px solid #bbb;
-    padding: 5px;
-}
-
-thead {
-    background: #ccc;
-}
-
-.active-row {
-    background: #ddd;
 }
 
 title {
