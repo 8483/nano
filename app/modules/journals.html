@@ -68,6 +68,7 @@
                         .then((data) => {
                             state.journal = data;
                             state.activeJournalId = msg.payload
+                            // TODO: Clear transaction inputs. Action?
                             view(state)
                         })
                         .catch((err) => err);
@@ -81,12 +82,55 @@
                     break;
 
                 case "INPUT_JOURNAL_COMPANY":
-                    // console.log(msg.payload)
-                    state.inputs.company = msg.payload
-                    view(state)
+                    state.inputs.company = msg.payload;
+                    state.focusedElement = `input-journal-company`
+                    view(state);
                     break;
 
-                // Od model treba da gi zima, ne od document
+                case "INPUT_JOURNAL_DATE":
+                    state.inputs.date = msg.payload;
+                    state.focusedElement = `input-journal-date`
+                    view(state); // TODO: Breaks the date formatting due to the refocusing.
+                    break;
+
+                case "INPUT_JOURNAL_TYPE":
+                    state.inputs.type = msg.payload;
+                    state.focusedElement = `input-journal-type`
+                    view(state);
+                    break;
+
+                case "INPUT_JOURNAL_DOCUMENT":
+                    state.inputs.document = msg.payload;
+                    state.focusedElement = `input-journal-document`
+                    view(state);
+                    break;
+
+                case "INPUT_JOURNAL_ACCOUNT_DEBIT":
+                    state.inputs.accountDebit = msg.payload;
+                    state.focusedElement = `input-journal-account-debit`
+                    view(state);
+                    break;
+
+                case "INPUT_JOURNAL_ACCOUNT_CREDIT":
+                    state.inputs.accountCredit = msg.payload;
+                    state.focusedElement = `input-journal-account-credit`
+                    view(state);
+                    break;
+
+                case "INPUT_JOURNAL_AMOUNT_DEBIT":
+                    state.inputs.amountDebit = msg.payload;
+                    state.focusedElement = `input-journal-amount-debit`
+                    view(state);
+                    break;
+
+                case "INPUT_JOURNAL_AMOUNT_CREDIT":
+                    state.inputs.amountCredit = msg.payload;
+                    state.focusedElement = `input-journal-amount-credit`
+                    view(state);
+                    break;
+
+                // TODO: Od model treba da gi zima, ne od document
+                // TODO: If active joirnal item is null, then save. Else update at id.
                 case "SAVE_JOURNAL_ITEM":
                     fetch("http://localhost:8080/journals", {
                         method: "POST",
@@ -97,13 +141,13 @@
                         body: JSON.stringify({
                             journalId: state.activeJournalId,
                             company: state.inputs.company,
-                            date: document.getElementById("input-journal-date").value,
-                            type: document.getElementById("input-journal-type").value,
-                            document: document.getElementById("input-journal-document").value,
-                            accountDebit: document.getElementById("input-journal-account-debit").value,
-                            accountCredit: document.getElementById("input-journal-account-credit").value,
-                            amountDebit: document.getElementById("input-journal-amount-debit").value,
-                            amountCredit: document.getElementById("input-journal-amount-credit").value
+                            date: state.inputs.date,
+                            type: state.inputs.type,
+                            document: state.inputs.document,
+                            accountDebit: state.inputs.accountDebit,
+                            accountCredit: state.inputs.accountCredit,
+                            amountDebit: state.inputs.amountDebit,
+                            amountCredit: state.inputs.amountCredit
                         })
                     })
                         .then(res => res.json()) // Return data.
@@ -178,31 +222,38 @@
                         </div>
                         <div class="input-group">
                             <label>Датум</label>
-                            <input id="input-journal-date" required value="${data.date}">
+                            <input id="input-journal-date" required value="${data.date}"
+                            oninput="update({action: 'INPUT_JOURNAL_DATE', payload: event.target.value})">
                         </div>
                         <div class="input-group">
                             <label>Вид</label>
-                            <input type="text" id="input-journal-type" value="${data.type}">
+                            <input type="text" id="input-journal-type" value="${data.type}"
+                            oninput="update({action: 'INPUT_JOURNAL_TYPE', payload: event.target.value})">
                         </div>
                         <div class="input-group">
                             <label>Документ</label>
-                            <input type="text" id="input-journal-document" value="${data.document}">
+                            <input type="text" id="input-journal-document" value="${data.document}"
+                            oninput="update({action: 'INPUT_JOURNAL_DOCUMENT', payload: event.target.value})">
                         </div>
                         <div class="input-group">
                             <label>Конто Должи</label>
-                            <input type="text" id="input-journal-account-debit" value="${data.accountDebit}">
+                            <input type="text" id="input-journal-account-debit" value="${data.accountDebit}"
+                            oninput="update({action: 'INPUT_JOURNAL_ACCOUNT_DEBIT', payload: event.target.value})">
                         </div>
                         <div class="input-group">
                             <label>Конто Побарува</label>
-                            <input type="text" id="input-journal-account-credit" value="${data.accountCredit}">
+                            <input type="text" id="input-journal-account-credit" value="${data.accountCredit}"
+                            oninput="update({action: 'INPUT_JOURNAL_ACCOUNT_CREDIT', payload: event.target.value})">
                         </div>
                         <div class="input-group">
                             <label>Износ Должи</label>
-                            <input type="text" id="input-journal-amount-debit" value="${data.amountDebit}">
+                            <input type="text" id="input-journal-amount-debit" value="${data.amountDebit}"
+                            oninput="update({action: 'INPUT_JOURNAL_AMOUNT_DEBIT', payload: event.target.value})">
                         </div>
                         <div class="input-group">
                             <label>Износ Побарува</label>
-                            <input type="text" id="input-journal-amount-credit" value="${data.amountCredit}">
+                            <input type="text" id="input-journal-amount-credit" value="${data.amountCredit}"
+                            oninput="update({action: 'INPUT_JOURNAL_AMOUNT_CREDIT', payload: event.target.value})">
                         </div>
                         <button id="button-journal-item-save">Зачувај</button>
                     </div>
