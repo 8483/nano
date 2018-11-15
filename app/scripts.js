@@ -59,8 +59,17 @@ function onEnterFocus(from, to) {
     document.getElementById(from).addEventListener("keypress", e => {
         let key = e.which || e.keyCode;
         if (key === 13) {
-            console.log(e);
-            document.getElementById(to).focus();
+            inputFocusAndSelectText(to);
         }
     });
+}
+
+// Select the text inside an input. Fixes caret being moved to start of text.
+function inputFocusAndSelectText(id) {
+    let input = document.getElementById(id);
+    input.addEventListener("focus", e => {
+        var len = e.target.value.length;
+        e.target.setSelectionRange(0, len);
+    });
+    input.focus();
 }

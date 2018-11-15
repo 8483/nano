@@ -5,6 +5,8 @@
     <title>Test</title>
     <link rel="stylesheet" type="text/css" href="../styles.css">
     <link rel="stylesheet" type="text/css" href="../lib/flatpickr/flatpickr.css">
+    <link rel="stylesheet" type="text/css" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+
     <script src="../scripts.js"></script>
 </head>
 
@@ -31,8 +33,8 @@
 
         // TODO: Refactor inputs into transaction inputs.
         state = {
-            activeJournalId: null,
             lastJournalId: null,
+            activeJournalId: null,
             journal: [],
             activeJournalItemId: null,
             focusedElement: "input-journal-company",
@@ -58,6 +60,7 @@
                             state.activeJournalId = data.id;
                             state.lastJournalId = data.id;
                             update({ action: "GET_JOURNAL", payload: state.activeJournalId })
+
                         })
                         .catch((err) => err);
                     break;
@@ -68,7 +71,10 @@
                         .then((data) => {
                             state.journal = data;
                             state.activeJournalId = msg.payload
-                            view(state)
+                            document.getElementById("input-journal-company").focus()
+                            update({ action: "CLEAR_INPUTS_JOURNAL_ITEM" })
+                            view(state);
+                            document.getElementById("grid").scrollIntoView(false);
                         })
                         .catch((err) => err);
                     break;
@@ -80,9 +86,16 @@
                     view(state)
                     break;
 
-                case "INPUT_JOURNAL_COMPANY":
-                    // console.log(msg.payload)
-                    state.inputs.company = msg.payload
+                case "CLEAR_INPUTS_JOURNAL_ITEM":
+                    state.activeJournalItemId = null;
+                    state.inputs.company = "";
+                    state.inputs.date = "";
+                    state.inputs.type = "";
+                    state.inputs.document = "";
+                    state.inputs.accountDebit = "";
+                    state.inputs.accountCredit = "";
+                    state.inputs.amountDebit = "";
+                    state.inputs.amountCredit = "";
                     view(state)
                     break;
 
@@ -93,7 +106,7 @@
                         headers: {
                             "Accept": "application/json",
                             "Content-type": "application/json"
-                        },
+                        }, // TODO: Abstract into GET_INPUTS action
                         body: JSON.stringify({
                             journalId: state.activeJournalId,
                             company: state.inputs.company,
@@ -115,22 +128,25 @@
                     break;
 
             }
+            // DEBUG
             console.log(JSON.stringify(state))
             // TODO: DALI SEKOGAS DA IMA VIEW STATE? BI TREBALO.
         }
 
         function view(state) {
 
+            // TODO: Abstract into component in a UI library
             function navigation(data) {
-                return `<div id="navigation" class="navigation">
-                    <button id="document-new>+</button>
-                    <button id="document-first>&lt;&lt;</button>
-                    <button id="document-previous">&lt;</button>
-                    <input type="txt" id="search-box" value="${data}">
-                    <button id="document-next">&gt;</button>
-                    <button id="document-last">&gt;&gt;</button>
-                    <button>X</button>
-                </div>`
+                return `
+                    <div id="navigation" class="navigation">
+                        <button id="document-new" class="nav-item btn btn-new"><i class="fas fa-plus"></i></button>
+                        <button id="document-first" class="nav-item btn"><i class="fas fa-angle-double-left"></i></button>
+                        <button id="document-previous" class="nav-item btn"><i class="fas fa-angle-left"></i></button>
+                        <input type="txt" id="search-box" class="nav-item" value="${data}">
+                        <button id="document-next" class="nav-item btn"><i class="fas fa-angle-right"></i></button>
+                        <button id="document-last" class="nav-item btn"><i class="fas fa-angle-double-right"></i></button>
+                        <button class="btn btn-delete"><i class="fas fa-trash"></i></button>
+                    </div>`
             }
 
             function journal(data) {
@@ -151,7 +167,7 @@
 
                 return `
                     <div id="journal" class="content">
-                        <table class="grid">
+                        <table id="grid" class="grid">
                             <thead>
                                 <th>Фирма</th>
                                 <th>Датум</th>
@@ -171,10 +187,10 @@
             function input(data) {
                 return `
                     <div id="input" class="input">
+                        <button id="button-journal-item-new" class="btn btn-new"><i class="fas fa-plus"></i></button>
                         <div class="input-group">    
                             <label>Фирма</label>
-                            <input type="text" id="input-journal-company" value="${data.company}" 
-                            oninput="update({action: 'INPUT_JOURNAL_COMPANY', payload: event.target.value})">
+                            <input type="text" id="input-journal-company" value="${data.company}">
                         </div>
                         <div class="input-group">
                             <label>Датум</label>
@@ -204,7 +220,7 @@
                             <label>Износ Побарува</label>
                             <input type="text" id="input-journal-amount-credit" value="${data.amountCredit}">
                         </div>
-                        <button id="button-journal-item-save">Зачувај</button>
+                        <button id="button-journal-item-save" class="btn btn-save"><i class="fas fa-check"></i></button>
                     </div>
                 `;
             }
@@ -218,47 +234,11 @@
             // Inject i.e. render HTML 
             document.getElementById("app").innerHTML = html;
 
-            // Focus specified element from state
-            // document.getElementById(state.focusedElement).focus();
-            let focusedElement = document.getElementById(state.focusedElement);
-            // Fix for cursor (caret) jumping to beginning of text input
-            // It sets it at the end on focus after refresh
-            focusedElement.addEventListener("focus", (e) => {
-                // console.log("focus", e)
-                var len = e.target.value.length;
-                e.target.setSelectionRange(len, len);
-            })
-            focusedElement.focus();
+            // Select the first input
+            inputFocusAndSelectText(state.focusedElement);
 
             // Turn input into date input
             makeDateField('input-journal-date')
-
-            // // When a row is clicked, send action
-            // addTableRowClickListeners("#journal", "SET_JOURNAL_ITEM");
-
-            // // Highlight clicked table row. Send a "SET_ITEM" update action.
-            // function addTableRowClickListeners(tableId, action) {
-            //     document.querySelectorAll(`${tableId} tr`).forEach(el =>
-            //         el.addEventListener("click", e => {
-            //             rowClickHandler(e);
-            //         })
-            //     );
-
-            //     function rowClickHandler(e) {
-            //         console.log(e.target.parentElement.cells);
-            //         let inputs = e.target.parentElement.cells;
-            //         console.log(inputs[0].innerText);
-
-            //         let rowId = e.target.parentElement.dataset.id;
-            //         update({
-            //             action: action,
-            //             payload: {
-            //                 rowId: rowId,
-            //                 inputs: inputs
-            //             }
-            //         });
-            //     }
-            // }
 
             // Highlight clicked table row. Send a "SET_ITEM" update action.
             document.querySelectorAll(`#journal tr`).forEach(el =>
@@ -268,29 +248,39 @@
             );
 
             // TODO: How can this be abstracted?
+            // Select row and populate inputs.
             function rowClickHandler(e) {
                 // console.log(e.target.parentElement.cells);
                 let inputs = e.target.parentElement.cells;
                 // console.log(inputs[0].innerText);
-                let rowId = e.target.parentElement.dataset.id;
 
-                update({
-                    action: "SET_JOURNAL_ITEM",
-                    payload: {
-                        rowId: rowId,
-                        inputs: {
-                            company: inputs[0].innerText,
-                            date: inputs[1].innerText,
-                            type: inputs[2].innerText,
-                            document: inputs[3].innerText,
-                            accountDebit: inputs[4].innerText,
-                            accountCredit: inputs[5].innerText,
-                            amountDebit: inputs[6].innerText,
-                            amountCredit: inputs[7].innerText
+
+                let rowId = e.target.parentElement.dataset.id;
+                // prevents selecting the header as a row, and populating the inputs
+                if (rowId != undefined) {
+                    update({
+                        action: "SET_JOURNAL_ITEM",
+                        payload: {
+                            rowId: rowId,
+                            inputs: {
+                                company: inputs[0].innerText,
+                                date: inputs[1].innerText,
+                                type: inputs[2].innerText,
+                                document: inputs[3].innerText,
+                                accountDebit: inputs[4].innerText,
+                                accountCredit: inputs[5].innerText,
+                                amountDebit: inputs[6].innerText,
+                                amountCredit: inputs[7].innerText
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
+
+            // Clear inputs
+            document.getElementById("button-journal-item-new").addEventListener("click", () => {
+                update({ action: "CLEAR_INPUTS_JOURNAL_ITEM" });
+            })
 
             // TODO: How can this be further abstracted with UPDATE?
             // When enter is pressed, jump to field
@@ -307,9 +297,12 @@
             // Save journal item
             document.getElementById("button-journal-item-save").addEventListener("click", () => { saveButtonClickHandler() })
             function saveButtonClickHandler() {
-                update({ action: "SAVE_JOURNAL_ITEM" });
-                // clearInputs(inputs);
-                document.getElementById("input-journal-company").focus()
+                if (state.activeJournalItemId === null) {
+                    update({ action: "SAVE_JOURNAL_ITEM" });
+                } else {
+                    // TODO: Update action
+                    update({ action: "UPDATE_JOURNAL_ITEM" });
+                }
             }
 
             // Search listener
@@ -331,7 +324,6 @@
                     update({ action: "GET_JOURNAL", payload: state.activeJournalId - 1 })
                 }
             })
-
         }
 
         // Won't work directly
@@ -346,8 +338,10 @@
             update({ action: "GET_JOURNAL", payload: args })
         })
 
+        // Initialize
         update({ action: "GET_LAST_JOURNAL" })
         view(state)
+        // Scroll to bottom of table
     </script>
 
 </body>
