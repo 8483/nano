@@ -10,6 +10,7 @@ body {
     display: grid;
     grid-template-rows: repeat(12, 1fr);
     grid-template-columns: repeat(12, 1fr);
+    background: #eee;
 }
 
 .login-form {
@@ -52,6 +53,7 @@ body {
     grid-row: 2/11;
     overflow-y: auto;
     border: 1px solid #bbb;
+    background: white;
 }
 
 /* Grid / Table */
@@ -64,13 +66,14 @@ table {
 table th {
     position: sticky; /* This makes a header fixed/sticky */
     top: 0px; /* This is also needed */
-    background: #eee;
+    background: #ccc;
     padding: 5px;
 }
 
 table td {
     border: 1px solid #bbb;
     padding: 5px;
+    cursor: pointer;
 }
 
 .active-row {
@@ -85,16 +88,23 @@ table td {
     /* padding: 10px; */
     display: flex;
     flex-wrap: wrap;
+    padding-top: 5px;
     /* align-items: center; */
     /* align-content: center; */
 }
 
 .input input {
     width: 120px;
+    height: 30px;
+    font-size: 12pt;
 }
 
 .input-group {
     margin-right: 5px;
+}
+
+.input-group:nth-child(2) {
+    margin-left: 5px;
 }
 
 input,
@@ -116,6 +126,8 @@ title {
 .btn {
     border: none;
     border-radius: 2px;
+    background: #ccc;
+    cursor: pointer;
 }
 
 .btn-new {

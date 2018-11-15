@@ -80,7 +80,7 @@
                     break;
 
                 case "SET_JOURNAL_ITEM":
-                    console.log(msg.payload)
+                    // console.log(msg.payload)
                     state.activeJournalItemId = msg.payload.rowId;
                     state.inputs = msg.payload.inputs;
                     view(state)
@@ -129,7 +129,8 @@
 
             }
             // DEBUG
-            console.log(JSON.stringify(state))
+            let { inputs, journal, ...debug } = state;
+            console.log(JSON.stringify(debug));
             // TODO: DALI SEKOGAS DA IMA VIEW STATE? BI TREBALO.
         }
 
@@ -139,13 +140,25 @@
             function navigation(data) {
                 return `
                     <div id="navigation" class="navigation">
-                        <button id="document-new" class="nav-item btn btn-new"><i class="fas fa-plus"></i></button>
-                        <button id="document-first" class="nav-item btn"><i class="fas fa-angle-double-left"></i></button>
-                        <button id="document-previous" class="nav-item btn"><i class="fas fa-angle-left"></i></button>
+                        <button id="document-new" class="nav-item btn btn-new">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button id="document-first" class="nav-item btn">
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button id="document-previous" class="nav-item btn">
+                            <i class="fas fa-angle-left"></i>
+                        </button>
                         <input type="txt" id="search-box" class="nav-item" value="${data}">
-                        <button id="document-next" class="nav-item btn"><i class="fas fa-angle-right"></i></button>
-                        <button id="document-last" class="nav-item btn"><i class="fas fa-angle-double-right"></i></button>
-                        <button class="btn btn-delete"><i class="fas fa-trash"></i></button>
+                        <button id="document-next" class="nav-item btn">
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button id="document-last" class="nav-item btn">
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
+                        <button class="btn btn-delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>`
             }
 
@@ -250,11 +263,7 @@
             // TODO: How can this be abstracted?
             // Select row and populate inputs.
             function rowClickHandler(e) {
-                // console.log(e.target.parentElement.cells);
                 let inputs = e.target.parentElement.cells;
-                // console.log(inputs[0].innerText);
-
-
                 let rowId = e.target.parentElement.dataset.id;
                 // prevents selecting the header as a row, and populating the inputs
                 if (rowId != undefined) {
@@ -276,6 +285,9 @@
                     });
                 }
             }
+
+            // Focus active row i.e. prevent table from going to top after clicking on row.
+            document.querySelector(`[data-id="${state.activeJournalItemId}"]`).focus();
 
             // Clear inputs
             document.getElementById("button-journal-item-new").addEventListener("click", () => {
@@ -334,7 +346,7 @@
 
         // SET ACTIVE JOURNAL ITEM TO NULL ON CHANGE
         ipcRenderer.on('set-journal-active-id', (e, args) => {
-            console.log(args);  // Prints 'foo!'
+            // console.log(args);  // Prints 'foo!'
             update({ action: "GET_JOURNAL", payload: args })
         })
 
