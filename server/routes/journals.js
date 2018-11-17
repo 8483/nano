@@ -1,24 +1,24 @@
 var express = require("express");
 var router = express.Router();
 
-router.get("/journal", function(req, res) {
+router.get("/journal", function (req, res) {
     let journal = journals[journals.length - 1];
     res.send(journal);
 });
 
-router.get("/journals", function(req, res) {
-    console.log(journals);
+router.get("/journals", function (req, res) {
+    // console.log(journals);
     res.send(journals);
 });
 
-router.get("/journals/:journalId", function(req, res) {
+router.get("/journals/:journalId", function (req, res) {
     var journalId = req.params.journalId;
     var items = journalItems.filter(item => item.journalId == journalId);
-    console.log(items);
+    // console.log(items);
     res.send(items);
 });
 
-router.post("/journals", function(req, res) {
+router.post("/journals", function (req, res) {
     journalItems.push({
         id: journalItems.length,
         journalId: req.body.journalId,
@@ -30,7 +30,33 @@ router.post("/journals", function(req, res) {
         amountDebit: req.body.amountDebit,
         amountCredit: req.body.amountCredit
     });
-    res.status(200).send({ message: `Success!` });
+    res.status(200).send({
+        message: `Success!`
+    });
+});
+
+router.put("/journals", function (req, res) {
+
+    console.log(journalItems.filter(item => item.id == req.body.journalItemId))
+
+    journalItems.map(item => {
+        if (item.id == req.body.journalItemId) {
+            item.company = req.body.company
+            item.date = req.body.date
+            item.type = req.body.type
+            item.document = req.body.document
+            item.accountDebit = req.body.accountDebit
+            item.accountCredit = req.body.accountCredit
+            item.amountDebit = req.body.amountDebit
+            item.amountCredit = req.body.amountCredit
+        }
+    });
+
+    console.log(journalItems.filter(item => item.id == req.body.journalItemId))
+
+    res.status(200).send({
+        message: `Success!`
+    });
 });
 
 module.exports = router;
@@ -62,5 +88,5 @@ for (var i = 0; i < 150; i++) {
     });
 }
 
-console.log(journals);
-console.log(journalItems);
+// console.log(journals);
+// console.log(journalItems);

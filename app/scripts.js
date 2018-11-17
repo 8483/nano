@@ -67,9 +67,12 @@ function onEnterFocus(from, to) {
 // Select the text inside an input. Fixes caret being moved to start of text.
 function inputFocusAndSelectText(id) {
     let input = document.getElementById(id);
-    input.addEventListener("focus", e => {
-        var len = e.target.value.length;
-        e.target.setSelectionRange(0, len);
-    });
+    // Selecting the range on a button causes an error
+    if (input.nodeName === "INPUT") {
+        input.addEventListener("focus", e => {
+            var len = e.target.value.length;
+            e.target.setSelectionRange(0, len);
+        });
+    }
     input.focus();
 }

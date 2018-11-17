@@ -3,9 +3,9 @@
 
 <head>
     <title>Test</title>
-    <link rel="stylesheet" type="text/css" href="../styles.css">
-    <link rel="stylesheet" type="text/css" href="../lib/flatpickr/flatpickr.css">
-    <link rel="stylesheet" type="text/css" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="../styles.css" />
+    <link rel="stylesheet" type="text/css" href="../lib/flatpickr/flatpickr.css" />
+    <link rel="stylesheet" type="text/css" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css" />
 
     <script src="../scripts.js"></script>
 </head>
@@ -13,21 +13,23 @@
 <body>
     <div id="app" class="container"></div>
     <script>
-
-        const { remote, ipcRenderer } = require('electron');
+        const {
+            remote,
+            ipcRenderer
+        } = require("electron");
 
         function openModal() {
             let win = new remote.BrowserWindow({
                 parent: remote.getCurrentWindow(),
                 // modal: true, // Makes it fixed/immovable i.e. modal
                 width: 600,
-                height: 400,
-            })
+                height: 400
+            });
 
             win.webContents.openDevTools();
-            var theUrl = 'file://' + __dirname + '/modal.html'
+            var theUrl = "file://" + __dirname + "/modal.html";
 
-            win.setMenu(null) // Remove the mainWindow menu
+            win.setMenu(null); // Remove the mainWindow menu
             win.loadURL(theUrl);
         }
 
@@ -48,42 +50,49 @@
                 amountDebit: "",
                 amountCredit: ""
             }
-        }
+        };
 
         function update(msg) {
             switch (msg.action) {
-
                 case "GET_LAST_JOURNAL":
                     fetch(`http://localhost:8080/journal`)
-                        .then((res) => res.json())
-                        .then((data) => {
+                        .then(res => res.json())
+                        .then(data => {
                             state.activeJournalId = data.id;
                             state.lastJournalId = data.id;
-                            update({ action: "GET_JOURNAL", payload: state.activeJournalId })
-
+                            update({
+                                action: "GET_JOURNAL",
+                                payload: state.activeJournalId
+                            });
                         })
-                        .catch((err) => err);
+                        .catch(err => err);
                     break;
 
                 case "GET_JOURNAL":
                     fetch(`http://localhost:8080/journals/${msg.payload}`)
-                        .then((res) => res.json())
-                        .then((data) => {
+                        .then(res => res.json())
+                        .then(data => {
                             state.journal = data;
-                            state.activeJournalId = msg.payload
-                            document.getElementById("input-journal-company").focus()
-                            update({ action: "CLEAR_INPUTS_JOURNAL_ITEM" })
+                            state.activeJournalId = msg.payload;
+                            document
+                                .getElementById("input-journal-company")
+                                .focus();
+                            update({
+                                action: "CLEAR_INPUTS_JOURNAL_ITEM"
+                            });
                             view(state);
-                            document.getElementById("grid").scrollIntoView(false);
+                            document
+                                .getElementById("grid")
+                                .scrollIntoView(false);
                         })
-                        .catch((err) => err);
+                        .catch(err => err);
                     break;
 
                 case "SET_JOURNAL_ITEM":
                     // console.log(msg.payload)
                     state.activeJournalItemId = msg.payload.rowId;
                     state.inputs = msg.payload.inputs;
-                    view(state)
+                    view(state);
                     break;
 
                 case "CLEAR_INPUTS_JOURNAL_ITEM":
@@ -96,46 +105,82 @@
                     state.inputs.accountCredit = "";
                     state.inputs.amountDebit = "";
                     state.inputs.amountCredit = "";
-                    view(state)
+                    view(state);
                     break;
 
-                // Od model treba da gi zima, ne od document
+                    // Od model treba da gi zima, ne od document
                 case "SAVE_JOURNAL_ITEM":
                     fetch("http://localhost:8080/journals", {
-                        method: "POST",
-                        headers: {
-                            "Accept": "application/json",
-                            "Content-type": "application/json"
-                        }, // TODO: Abstract into GET_INPUTS action
-                        body: JSON.stringify({
-                            journalId: state.activeJournalId,
-                            company: state.inputs.company,
-                            date: document.getElementById("input-journal-date").value,
-                            type: document.getElementById("input-journal-type").value,
-                            document: document.getElementById("input-journal-document").value,
-                            accountDebit: document.getElementById("input-journal-account-debit").value,
-                            accountCredit: document.getElementById("input-journal-account-credit").value,
-                            amountDebit: document.getElementById("input-journal-amount-debit").value,
-                            amountCredit: document.getElementById("input-journal-amount-credit").value
+                            method: "POST",
+                            headers: {
+                                Accept: "application/json",
+                                "Content-type": "application/json"
+                            }, // TODO: Abstract into GET_INPUTS action
+                            body: JSON.stringify({
+                                journalId: state.activeJournalId,
+                                company: state.inputs.company,
+                                date: document.getElementById("input-journal-date").value,
+                                type: document.getElementById("input-journal-type").value,
+                                document: document.getElementById("input-journal-document").value,
+                                accountDebit: document.getElementById("input-journal-account-debit").value,
+                                accountCredit: document.getElementById("input-journal-account-credit").value,
+                                amountDebit: document.getElementById("input-journal-amount-debit").value,
+                                amountCredit: document.getElementById("input-journal-amount-credit").value
+                            })
                         })
-                    })
                         .then(res => res.json()) // Return data.
                         .then(data => {
                             // display error if failed
-                            update({ action: "GET_JOURNAL", payload: state.activeJournalId })
+                            update({
+                                action: "GET_JOURNAL",
+                                payload: state.activeJournalId
+                            });
                         })
                         .catch(err => err);
                     break;
 
+                case "UPDATE_JOURNAL_ITEM":
+                    console.log(state.activeJournalItemId)
+                    fetch("http://localhost:8080/journals", {
+                            method: "PUT",
+                            headers: {
+                                Accept: "application/json",
+                                "Content-type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                journalItemId: state.activeJournalItemId,
+                                company: document.getElementById("input-journal-company").value,
+                                date: document.getElementById("input-journal-date").value,
+                                type: document.getElementById("input-journal-type").value,
+                                document: document.getElementById("input-journal-document").value,
+                                accountDebit: document.getElementById("input-journal-account-debit").value,
+                                accountCredit: document.getElementById("input-journal-account-credit").value,
+                                amountDebit: document.getElementById("input-journal-amount-debit").value,
+                                amountCredit: document.getElementById("input-journal-amount-credit").value
+                            })
+                        })
+                        .then(res => res.json()) // Return data.
+                        .then(data => {
+                            // display error if failed
+                            update({
+                                action: "GET_JOURNAL",
+                                payload: state.activeJournalId
+                            });
+                        })
+                        .catch(err => err);
+                    break;
             }
             // DEBUG
-            let { inputs, journal, ...debug } = state;
+            let {
+                inputs,
+                journal,
+                ...debug
+            } = state;
             console.log(JSON.stringify(debug));
             // TODO: DALI SEKOGAS DA IMA VIEW STATE? BI TREBALO.
         }
 
         function view(state) {
-
             // TODO: Abstract into component in a UI library
             function navigation(data) {
                 return `
@@ -159,14 +204,15 @@
                         <button class="btn btn-delete">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </div>`
+                    </div>
+                    `;
             }
 
             function journal(data) {
                 let rows = "";
                 for (let i = 0; i < data.length; i++) {
-                    rows += `
-                        <tr data-id="${data[i].id}" ${data[i].id == state.activeJournalItemId ? `class="active-row"` : ""}>
+                    rows +=
+                        `<tr data-id="${data[i].id}" ${data[i].id == state.activeJournalItemId ? `class="active-row"` : ""}>
                             <td>${data[i].company}</td>
                             <td>${data[i].date}</td>
                             <td>${data[i].type}</td>
@@ -238,20 +284,21 @@
                 `;
             }
 
-            html = `
+            html =
+                `
                 ${navigation(state.activeJournalId)}
                 ${journal(state.journal)}
                 ${input(state.inputs)}
             `;
 
-            // Inject i.e. render HTML 
+            // Inject i.e. render HTML
             document.getElementById("app").innerHTML = html;
 
             // Select the first input
             inputFocusAndSelectText(state.focusedElement);
 
             // Turn input into date input
-            makeDateField('input-journal-date')
+            makeDateField("input-journal-date");
 
             // Highlight clicked table row. Send a "SET_ITEM" update action.
             document.querySelectorAll(`#journal tr`).forEach(el =>
@@ -287,55 +334,86 @@
             }
 
             // Focus active row i.e. prevent table from going to top after clicking on row.
-            document.querySelector(`[data-id="${state.activeJournalItemId}"]`).focus();
+            let activeRow = document.querySelector(
+                `[data-id="${state.activeJournalItemId}"]`
+            );
+            if (activeRow) activeRow.focus();
 
             // Clear inputs
-            document.getElementById("button-journal-item-new").addEventListener("click", () => {
-                update({ action: "CLEAR_INPUTS_JOURNAL_ITEM" });
-            })
+            document
+                .getElementById("button-journal-item-new")
+                .addEventListener("click", () => {
+                    update({
+                        action: "CLEAR_INPUTS_JOURNAL_ITEM"
+                    });
+                });
 
             // TODO: How can this be further abstracted with UPDATE?
             // When enter is pressed, jump to field
-            onEnterFocus("input-journal-company", "input-journal-date")
-            onEnterFocus("input-journal-date", "input-journal-type")
-            onEnterFocus("input-journal-type", "input-journal-document")
-            onEnterFocus("input-journal-document", "input-journal-account-debit")
-            onEnterFocus("input-journal-account-debit", "input-journal-account-credit")
-            onEnterFocus("input-journal-account-credit", "input-journal-amount-debit")
-            onEnterFocus("input-journal-amount-debit", "input-journal-amount-credit")
-            onEnterFocus("input-journal-amount-credit", "button-journal-item-save")
-            onEnterFocus("button-journal-item-save", "input-journal-company")
+            onEnterFocus("input-journal-company", "input-journal-date");
+            onEnterFocus("input-journal-date", "input-journal-type");
+            onEnterFocus("input-journal-type", "input-journal-document");
+            onEnterFocus("input-journal-document", "input-journal-account-debit");
+            onEnterFocus("input-journal-account-debit", "input-journal-account-credit");
+            onEnterFocus("input-journal-account-credit", "input-journal-amount-debit");
+            onEnterFocus("input-journal-amount-debit", "input-journal-amount-credit");
+            onEnterFocus("input-journal-amount-credit", "button-journal-item-save");
+            onEnterFocus("button-journal-item-save", "input-journal-company");
 
             // Save journal item
-            document.getElementById("button-journal-item-save").addEventListener("click", () => { saveButtonClickHandler() })
+            document
+                .getElementById("button-journal-item-save")
+                .addEventListener("click", () => {
+                    saveButtonClickHandler();
+                });
+
             function saveButtonClickHandler() {
+                console.log("save clicked");
                 if (state.activeJournalItemId === null) {
-                    update({ action: "SAVE_JOURNAL_ITEM" });
+                    console.log("save");
+                    update({
+                        action: "SAVE_JOURNAL_ITEM"
+                    });
                 } else {
+                    console.log("update");
                     // TODO: Update action
-                    update({ action: "UPDATE_JOURNAL_ITEM" });
+                    update({
+                        action: "UPDATE_JOURNAL_ITEM"
+                    });
                 }
             }
 
             // Search listener
-            document.getElementById("search-box").addEventListener("click", () => {
-                openModal();
-            })
+            document
+                .getElementById("search-box")
+                .addEventListener("click", () => {
+                    openModal();
+                });
 
             // Document navigation
-            document.getElementById("document-next").addEventListener("click", () => {
-                if (state.activeJournalId < state.lastJournalId) {
-                    update({ action: "GET_JOURNAL", payload: state.activeJournalId + 1 })
-                }
-            })
+            document
+                .getElementById("document-next")
+                .addEventListener("click", () => {
+                    if (state.activeJournalId < state.lastJournalId) {
+                        update({
+                            action: "GET_JOURNAL",
+                            payload: state.activeJournalId + 1
+                        });
+                    }
+                });
 
             // Document navigation
-            document.getElementById("document-previous").addEventListener("click", () => {
-                console.log('click')
-                if (state.activeJournalId >= 2) {
-                    update({ action: "GET_JOURNAL", payload: state.activeJournalId - 1 })
-                }
-            })
+            document
+                .getElementById("document-previous")
+                .addEventListener("click", () => {
+                    console.log("click");
+                    if (state.activeJournalId >= 2) {
+                        update({
+                            action: "GET_JOURNAL",
+                            payload: state.activeJournalId - 1
+                        });
+                    }
+                });
         }
 
         // Won't work directly
@@ -345,17 +423,21 @@
         // })
 
         // SET ACTIVE JOURNAL ITEM TO NULL ON CHANGE
-        ipcRenderer.on('set-journal-active-id', (e, args) => {
+        ipcRenderer.on("set-journal-active-id", (e, args) => {
             // console.log(args);  // Prints 'foo!'
-            update({ action: "GET_JOURNAL", payload: args })
-        })
+            update({
+                action: "GET_JOURNAL",
+                payload: args
+            });
+        });
 
         // Initialize
-        update({ action: "GET_LAST_JOURNAL" })
-        view(state)
+        update({
+            action: "GET_LAST_JOURNAL"
+        });
+        view(state);
         // Scroll to bottom of table
     </script>
-
 </body>
 
 </html>
