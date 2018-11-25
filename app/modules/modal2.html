@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Пребарување Налози</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+
+<body>
+	<div id="app" class="container"></div>
+	<script>
+
+		const { remote } = require('electron');
+		var ipcRenderer = require("electron").ipcRenderer;
+
+		state = {
+			journals: [],
+			filteredJournals: [],
+			activeJournalId: null,
+			query: ""
+		}
+
+		function update(msg) {
+			switch (msg.action) {
+
+				case "GET_JOURNALS":
+					fetch(`http://localhost:8080/journals`)
+						.then((res) => res.json())
+						.then((data) => {
+							state.journals = data;
+							state.filteredJournals = data;
+							if (state.activeJournalId === null) {
+								state.activeJournalId = data.length;
+								update({ action: "GET_JOURNAL", payload: state.activeJournalId })
+							}
+							view(state)
+						})
+						.catch((err) => err);
+					break;
+			}
+		}
+
+		function view(state) {
+
+			function journals(data) {
+				let rows = "";
+				for (let i = 0; i < data.length; i++) {
+					rows += `
+						<tr data-id="${data[i].id}" ${data[i].id == state.activeJournalId ? `class="active-row"` : ""}>
+							<td>${data[i].code}</td>
+						</tr>`;
+				}
+
+				return `
+					<table>
+						<thead>
+							<th>Шифра</th>
+						</thead>
+						<tbody>${rows}</tbody>
+					</table>
+				`;
+			}
+
+			html = `
+				<input type="text" id="search-box" class="search-box" placeholder="Пребарување..." value="${state.query}">
+				<div id="journals" class="search-result">${journals(state.filteredJournals)}</div>
+				`;
+
+			document.getElementById("app").innerHTML = html;
+
+			// Single journal click
+			document.querySelectorAll('#journals tr').forEach(el => el.addEventListener("click", (e) => { journalClickHandler(e) }));
+			function journalClickHandler(e) {
+				let journalId = e.target.parentElement.dataset.id
+				state.activeJournalId = journalId;
+				// ipcRenderer.send('set-journal-active-id', journalId);
+				console.log("click")
+				remote.getCurrentWindow().getParentWindow().send('set-journal-active-id', journalId)
+				view(state);
+			}
+
+			// This can be done like this in main process, but this is easier.
+			// ipcMain.on("set-journal-active-id", (e, args) => {
+			//     console.log(args);
+			//     browserWindow.webContents.send("set-journal-active-id", args);
+			// });
+
+			// Double journal click
+			document.querySelectorAll('#journals tr').forEach(el => el.addEventListener("dblclick", (e) => { journalClickHandler_close(e) }));
+			function journalClickHandler_close(e) {
+				let journalId = e.target.parentElement.dataset.id
+				// ipcRenderer.send('set-journal-active-id', journalId);
+				var window = remote.getCurrentWindow();
+				window.getParentWindow().send('set-journal-active-id', journalId)
+				console.log("click")
+
+				// Close the window after selecting document
+				window.close();
+			}
+
+			let searchBox = document.getElementById("search-box");
+
+			// Fix for cursor (caret) jumping to beginning of text input
+			// It sets it at the end on focus after refresh
+			searchBox.addEventListener("focus", (e) => {
+				var len = state.query.length;
+				e.target.setSelectionRange(len, len);
+			})
+			searchBox.focus();
+
+			// Filter the journals array based on input. Uses a second array to avoid losing data.
+			searchBox.addEventListener("keyup", (e) => {
+				state.query = e.target.value
+				state.filteredJournals = state.journals.filter(item => item.code.includes(state.query));
+				view(state);
+			})
+		}
+
+		update({ action: "GET_JOURNALS" })
+		view(state)
+	</script>
+
+</body>
+
+</html>

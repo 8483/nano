@@ -2,29 +2,67 @@ var express = require("express");
 var router = express.Router();
 var mysql = require("mysql");
 
-router.get("/journal", function (req, res) {
-    let journal = journals[journals.length - 1];
-    res.send(journal);
-});
-
-router.get("/journals", function (req, res) {
-    // console.log(journals);
-    res.send(journals);
-});
-
-router.get("/journals/:journalId", function (req, res) {
-    var journalId = req.params.journalId;
-    var items = journalItems.filter(item => item.journalId == journalId);
-    // console.log(items);
-    res.send(items);
-});
-
 var config = {
     user: "root",
     password: "",
     host: "localhost",
     database: "nano"
 };
+
+
+router.get("/journals", function (req, res) {
+
+    var connection = mysql.createConnection(config);
+
+    connection.connect();
+
+    const query = `
+        select 
+            id,
+            journal_key,
+            date(journal_date) journal_date
+        from journal
+    `;
+
+    connection.query(query, function (error, results, fields) {
+        if (error) {
+            console.log(error);
+            res.status(500).send({
+                message: error
+            });
+        } else {
+            console.log(results);
+            res.status(200).send(results);
+        }
+    });
+
+    connection.end();
+});
+
+router.get("/journals/:id", function (req, res) {
+    let journalId = req.params.id;
+    var connection = mysql.createConnection(config);
+
+    connection.connect();
+
+    const query = `
+        select * from journal_item where journal_id = ?
+    `;
+
+    connection.query(query, journalId, function (error, results, fields) {
+        if (error) {
+            console.log(error);
+            res.status(500).send({
+                message: error
+            });
+        } else {
+            console.log(results);
+            res.status(200).send(results);
+        }
+    });
+
+    connection.end();
+});
 
 /*
 Multiple placeholders are mapped to values in the same order as passed. 
@@ -97,58 +135,4 @@ router.post("/journals", function (req, res) {
 });
 
 
-router.put("/journals", function (req, res) {
-
-    console.log(journalItems.filter(item => item.id == req.body.journalItemId))
-
-    journalItems.map(item => {
-        if (item.id == req.body.journalItemId) {
-            item.company = req.body.company
-            item.date = req.body.date
-            item.type = req.body.type
-            item.document = req.body.document
-            item.accountDebit = req.body.accountDebit
-            item.accountCredit = req.body.accountCredit
-            item.amountDebit = req.body.amountDebit
-            item.amountCredit = req.body.amountCredit
-        }
-    });
-
-    console.log(journalItems.filter(item => item.id == req.body.journalItemId))
-
-    res.status(200).send({
-        message: `Success!`
-    });
-});
-
 module.exports = router;
-
-var journals = [];
-var journalItems = [];
-
-for (var i = 0; i < 15; i++) {
-    journals.push({
-        id: i + 1,
-        code: `18-440-${Math.floor(Math.random() * 100)}`
-    });
-}
-
-for (var i = 0; i < 150; i++) {
-    journalItems.push({
-        id: i + 1,
-        journalId: Math.floor(Math.random() * journals.length + 1),
-        company: `Фирма ${Math.floor(Math.random() * 10 + 1)}`,
-        date: `${Math.floor(Math.random() * 32)}.${Math.floor(
-            Math.random() * 13
-        )}.201${Math.floor(Math.random() * 8)}`,
-        type: `Вид налог ${Math.floor(Math.random() * 10 + 1)}`,
-        document: `Фактура ${Math.floor(Math.random() * 30 + 1)}`,
-        accountDebit: 1200 + Math.floor(Math.random() * 30 + 1),
-        accountCredit: 2200 + Math.floor(Math.random() * 30 + 1),
-        amountDebit: Math.floor(Math.random() * 10000),
-        amountCredit: Math.floor(Math.random() * 10000)
-    });
-}
-
-// console.log(journals);
-// console.log(journalItems);
