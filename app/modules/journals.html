@@ -33,6 +33,8 @@
             win.loadURL(theUrl);
         }
 
+        // TODO: Load module local data on startup like accounts, companies. Add a refresh button to reload new data.
+
         // TODO: Refactor inputs into transaction inputs.
         state = {
             lastJournalId: null,
@@ -118,7 +120,7 @@
                             }, // TODO: Abstract into GET_INPUTS action
                             body: JSON.stringify({
                                 journalId: state.activeJournalId,
-                                company: state.inputs.company,
+                                company: document.getElementById("input-journal-company").value,
                                 date: document.getElementById("input-journal-date").value,
                                 type: document.getElementById("input-journal-type").value,
                                 document: document.getElementById("input-journal-document").value,
