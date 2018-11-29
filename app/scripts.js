@@ -22,14 +22,14 @@ function makeDateField(divId) {
             // add a leading 0
             str =
                 num > parseInt(max.toString().charAt(0)) &&
-                num.toString().length == 1
-                    ? "0" + num
-                    : num.toString();
+                num.toString().length == 1 ?
+                "0" + num :
+                num.toString();
         }
         return str;
     }
 
-    date.addEventListener("input", function(e) {
+    date.addEventListener("input", function (e) {
         this.type = "text";
         var input = this.value;
 
@@ -37,7 +37,7 @@ function makeDateField(divId) {
         if (/\.$/.test(input)) input = input.substr(0, input.length - 2);
 
         // Split at / and remove /
-        var values = input.split(".").map(function(v) {
+        var values = input.split(".").map(function (v) {
             return v.replace(/\D/g, "");
         });
 
@@ -45,7 +45,7 @@ function makeDateField(divId) {
         if (values[0]) values[0] = checkValue(values[0], 31);
         if (values[1]) values[1] = checkValue(values[1], 12);
 
-        var output = values.map(function(v, i) {
+        var output = values.map(function (v, i) {
             return v.length == 2 && i < 2 ? v + "." : v;
         });
 
@@ -57,8 +57,7 @@ function makeDateField(divId) {
 // on Enter, jumpr from one to another field
 function onEnterFocus(from, to) {
     document.getElementById(from).addEventListener("keypress", e => {
-        let key = e.which || e.keyCode;
-        if (key === 13) {
+        if (e.key === "Enter") {
             inputFocusAndSelectText(to);
         }
     });
@@ -76,3 +75,5 @@ function inputFocusAndSelectText(id) {
     }
     input.focus();
 }
+
+// TODO: Number formatting function .toLocaleString();

@@ -11,6 +11,7 @@ body {
     grid-template-rows: repeat(12, 1fr);
     grid-template-columns: repeat(12, 1fr);
     background: #eee;
+    padding: 5px;
 }
 
 .login-form {
@@ -18,15 +19,12 @@ body {
     grid-row: 3/11;
 }
 
-.navigation {
+.input-header {
     grid-column: 1/-1;
     grid-row: 1/2;
     display: flex;
-    padding: 10px;
-}
-
-.navigation .nav-item {
-    margin-right: 5px;
+    padding-bottom: 5px;
+    align-items: flex-end;
 }
 
 .search-box {
@@ -64,8 +62,10 @@ table {
 }
 
 table th {
-    position: sticky; /* This makes a header fixed/sticky */
-    top: 0px; /* This is also needed */
+    position: sticky;
+    /* This makes a header fixed/sticky */
+    top: 0px;
+    /* This is also needed */
     background: #ccc;
     padding: 5px;
 }
@@ -82,18 +82,22 @@ table td {
 
 /* Input */
 
-.input {
+.input-item {
     grid-column: 1/-1;
     grid-row: 11/12;
     /* padding: 10px; */
     display: flex;
     flex-wrap: wrap;
     padding-top: 5px;
+    padding-bottom: 5px;
+    align-items: flex-end;
+    /* Anchor to bottom */
     /* align-items: center; */
     /* align-content: center; */
 }
 
-.input input {
+.input-header input,
+.input-item input {
     width: 120px;
     height: 30px;
     font-size: 12pt;
@@ -101,10 +105,6 @@ table td {
 
 .input-group {
     margin-right: 5px;
-}
-
-.input-group:nth-child(2) {
-    margin-left: 5px;
 }
 
 input,
@@ -128,6 +128,9 @@ title {
     border-radius: 2px;
     background: #ccc;
     cursor: pointer;
+    margin-right: 5px;
+    width: 35px;
+    height: 35px;
 }
 
 .btn-new {

@@ -19,7 +19,7 @@
         } = require("electron");
 
         ipcRenderer.on("foo", (e, args) => {
-            state.activeJournalId = args;
+            state.journalId = args;
             update({
                 action: "GET_JOURNAL"
             });
@@ -30,10 +30,14 @@
         // TODO: Refactor inputs into transaction inputs.
         state = {
             lastJournalId: null,
-            activeJournalId: null,
+            journalId: null,
+            header: {
+                journal_key: "",
+                journal_date: ""
+            },
             journal: [],
             activeJournalItemId: null,
-            focusedElement: "input-journal-company",
+            focusedElement: "input-journal-item-account-debit",
             inputs: {
                 company: "",
                 date: "",
@@ -43,31 +47,25 @@
                 accountCredit: "",
                 amountDebit: "",
                 amountCredit: ""
+            },
+            balance: {
+                total_debit: "",
+                total_credit: "",
+                balance: ""
             }
         };
 
         function update(msg) {
             switch (msg.action) {
-                case "GET_LAST_JOURNAL":
-                    fetch(`http://localhost:8080/journal`)
-                        .then(res => res.json())
-                        .then(data => {
-                            state.activeJournalId = data.id;
-                            state.lastJournalId = data.id;
-                            update({
-                                action: "GET_JOURNAL",
-                                payload: state.activeJournalId
-                            });
-                        })
-                        .catch(err => err);
-                    break;
 
                 case "GET_JOURNAL":
-                    fetch(`http://localhost:8080/journals/${state.activeJournalId}`)
+                    fetch(`http://localhost:8080/journals/${state.journalId}`)
                         .then(res => res.json())
                         .then(data => {
-                            console.log(data)
-                            state.journal = data;
+                            state.header = data.header;
+                            state.journal = data.items;
+                            state.balance = data.balance;
+                            document.title = "Налог - " + data.header.journal_key;
                             view(state);
                             // document
                             //     .getElementById("grid")
@@ -105,15 +103,15 @@
                                 "Content-type": "application/json"
                             }, // TODO: Abstract into GET_INPUTS action
                             body: JSON.stringify({
-                                journalId: state.activeJournalId,
-                                company: document.getElementById("input-journal-company").value,
-                                date: document.getElementById("input-journal-date").value,
-                                type: document.getElementById("input-journal-type").value,
-                                document: document.getElementById("input-journal-document").value,
-                                accountDebit: document.getElementById("input-journal-account-debit").value,
-                                accountCredit: document.getElementById("input-journal-account-credit").value,
-                                amountDebit: document.getElementById("input-journal-amount-debit").value,
-                                amountCredit: document.getElementById("input-journal-amount-credit").value
+                                journalId: state.journalId,
+                                accountDebit: document.getElementById("input-journal-item-account-debit").value,
+                                accountCredit: document.getElementById("input-journal-item-account-credit")
+                                    .value,
+                                amountDebit: document.getElementById("input-journal-item-amount-debit").value,
+                                amountCredit: document.getElementById("input-journal-item-amount-credit").value,
+                                document: document.getElementById("input-journal-item-document").value,
+                                date: document.getElementById("input-journal-item-date").value,
+                                company: document.getElementById("input-journal-item-company").value,
                             })
                         })
                         .then(res => res.json()) // Return data.
@@ -121,7 +119,7 @@
                             // display error if failed
                             update({
                                 action: "GET_JOURNAL",
-                                payload: state.activeJournalId
+                                payload: state.journalId
                             });
                         })
                         .catch(err => err);
@@ -139,7 +137,6 @@
                                 journalItemId: state.activeJournalItemId,
                                 company: document.getElementById("input-journal-company").value,
                                 date: document.getElementById("input-journal-date").value,
-                                type: document.getElementById("input-journal-type").value,
                                 document: document.getElementById("input-journal-document").value,
                                 accountDebit: document.getElementById("input-journal-account-debit").value,
                                 accountCredit: document.getElementById("input-journal-account-credit").value,
@@ -152,7 +149,7 @@
                             // display error if failed
                             update({
                                 action: "GET_JOURNAL",
-                                payload: state.activeJournalId
+                                payload: state.journalId
                             });
                         })
                         .catch(err => err);
@@ -172,18 +169,38 @@
         function view(state) {
             // TODO: Abstract into component in a UI library
 
+            function header(data) {
+                return `
+                    <div id="input-header" class="input-header">
+                        <button id="button-journal-new" class="btn btn-new"><i class="fas fa-plus"></i></button>
+                        <div class="input-group">    
+                            <label>Број</label>
+                            <input type="text" id="input-journal-key" value="${data.journal_key}">
+                        </div>
+                        <div class="input-group">
+                            <label>Датум</label>
+                            <input id="input-journal-date" required value="${data.journal_date}">
+                        </div>
+                        <button id="button-journal-save" class="btn btn-save"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            }
+
             function journal(data) {
                 let rows = "";
                 for (let i = 0; i < data.length; i++) {
                     rows +=
                         `<tr data-id="${data[i].id}" ${data[i].id == state.activeJournalItemId ? `class="active-row"` : ""}>
-                            <td>${data[i].company_id}</td>
-                            <td>${data[i].document_date}</td>
-                            <td>${data[i].document_key}</td>
                             <td>${data[i].account_debit_id}</td>
                             <td>${data[i].account_credit_id}</td>
                             <td>${data[i].amount_debit}</td>
                             <td>${data[i].amount_credit}</td>
+                            <td>${data[i].document_key}</td>
+                            <td>${data[i].document_date}</td>
+                            <td>${data[i].company_id}</td>
                         </tr>`;
                 }
 
@@ -191,14 +208,13 @@
                     <div id="journal" class="content">
                         <table id="grid" class="grid">
                             <thead>
-                                <th>Фирма</th>
-                                <th>Датум</th>
-                                <th>Вид</th>
-                                <th>Документ</th>
                                 <th>Конто Д</th>
                                 <th>Конто П</th>
                                 <th>Износ Д</th>
                                 <th>Износ П</th>
+                                <th>Документ</th>
+                                <th>Датум</th>
+                                <th>Фирма</th> 
                             </thead>
                             <tbody>${rows}</tbody>
                         </table>
@@ -208,39 +224,35 @@
 
             function input(data) {
                 return `
-                    <div id="input" class="input">
+                    <div id="input-item" class="input-item">
                         <button id="button-journal-item-new" class="btn btn-new"><i class="fas fa-plus"></i></button>
-                        <div class="input-group">    
-                            <label>Фирма</label>
-                            <input type="text" id="input-journal-company" value="${data.company}">
-                        </div>
-                        <div class="input-group">
-                            <label>Датум</label>
-                            <input id="input-journal-date" required value="${data.date}">
-                        </div>
-                        <div class="input-group">
-                            <label>Вид</label>
-                            <input type="text" id="input-journal-type" value="${data.type}">
-                        </div>
-                        <div class="input-group">
-                            <label>Документ</label>
-                            <input type="text" id="input-journal-document" value="${data.document}">
-                        </div>
                         <div class="input-group">
                             <label>Конто Должи</label>
-                            <input type="text" id="input-journal-account-debit" value="${data.accountDebit}">
+                            <input type="text" id="input-journal-item-account-debit" value="${data.accountDebit}">
                         </div>
                         <div class="input-group">
                             <label>Конто Побарува</label>
-                            <input type="text" id="input-journal-account-credit" value="${data.accountCredit}">
+                            <input type="text" id="input-journal-item-account-credit" value="${data.accountCredit}">
                         </div>
                         <div class="input-group">
                             <label>Износ Должи</label>
-                            <input type="text" id="input-journal-amount-debit" value="${data.amountDebit}">
+                            <input type="text" id="input-journal-item-amount-debit" value="${data.amountDebit}">
                         </div>
                         <div class="input-group">
                             <label>Износ Побарува</label>
-                            <input type="text" id="input-journal-amount-credit" value="${data.amountCredit}">
+                            <input type="text" id="input-journal-item-amount-credit" value="${data.amountCredit}">
+                        </div>
+                        <div class="input-group">
+                            <label>Документ</label>
+                            <input type="text" id="input-journal-item-document" value="${data.document}">
+                        </div>
+                        <div class="input-group">
+                            <label>Датум</label>
+                            <input id="input-journal-item-date" required value="${data.date}">
+                        </div>
+                        <div class="input-group">    
+                            <label>Фирма</label>
+                            <input type="text" id="input-journal-item-company" value="${data.company}">
                         </div>
                         <button id="button-journal-item-save" class="btn btn-save"><i class="fas fa-check"></i></button>
                         <button class="btn btn-delete">
@@ -252,9 +264,17 @@
 
             html =
                 `
+                ${header(state.header)}
                 ${journal(state.journal)}
                 ${input(state.inputs)}
+                <span style="width: 500px;">
+                    <span><b>Должи:</b> ${state.balance.total_debit}</span>
+                    <span><b>Побарува:</b> ${state.balance.total_credit}</span>
+                    <span><b>Салдо:</b> ${state.balance.balance}</span>
+                </span>
             `;
+
+            // console.log(state)
 
             // Inject i.e. render HTML
             document.getElementById("app").innerHTML = html;
@@ -263,7 +283,7 @@
             inputFocusAndSelectText(state.focusedElement);
 
             // Turn input into date input
-            makeDateField("input-journal-date");
+            makeDateField("input-journal-item-date");
 
             // Highlight clicked table row. Send a "SET_ITEM" update action.
             document.querySelectorAll(`#journal tr`).forEach(el =>
@@ -284,14 +304,14 @@
                         payload: {
                             rowId: rowId,
                             inputs: {
-                                company: inputs[0].innerText,
-                                date: inputs[1].innerText,
-                                type: inputs[2].innerText,
-                                document: inputs[3].innerText,
-                                accountDebit: inputs[4].innerText,
-                                accountCredit: inputs[5].innerText,
-                                amountDebit: inputs[6].innerText,
-                                amountCredit: inputs[7].innerText
+                                accountDebit: inputs[0].innerText,
+                                accountCredit: inputs[1].innerText,
+                                amountDebit: inputs[2].innerText,
+                                amountCredit: inputs[3].innerText,
+                                document: inputs[4].innerText,
+                                date: inputs[5].innerText,
+                                company: inputs[6].innerText,
+
                             }
                         }
                     });
@@ -313,17 +333,24 @@
                     });
                 });
 
+            document.addEventListener("keyup", (e) => {
+                if (e.key === "Escape") {
+                    update({
+                        action: "CLEAR_INPUTS_JOURNAL_ITEM"
+                    });
+                }
+            })
+
             // TODO: How can this be further abstracted with UPDATE?
             // When enter is pressed, jump to field
-            onEnterFocus("input-journal-company", "input-journal-date");
-            onEnterFocus("input-journal-date", "input-journal-type");
-            onEnterFocus("input-journal-type", "input-journal-document");
-            onEnterFocus("input-journal-document", "input-journal-account-debit");
-            onEnterFocus("input-journal-account-debit", "input-journal-account-credit");
-            onEnterFocus("input-journal-account-credit", "input-journal-amount-debit");
-            onEnterFocus("input-journal-amount-debit", "input-journal-amount-credit");
-            onEnterFocus("input-journal-amount-credit", "button-journal-item-save");
-            onEnterFocus("button-journal-item-save", "input-journal-company");
+            onEnterFocus("input-journal-item-account-debit", "input-journal-item-account-credit");
+            onEnterFocus("input-journal-item-account-credit", "input-journal-item-amount-debit");
+            onEnterFocus("input-journal-item-amount-debit", "input-journal-item-amount-credit");
+            onEnterFocus("input-journal-item-amount-credit", "input-journal-item-document");
+            onEnterFocus("input-journal-item-document", "input-journal-item-date");
+            onEnterFocus("input-journal-item-date", "input-journal-item-company");
+            onEnterFocus("input-journal-item-company", "button-journal-item-save");
+            onEnterFocus("button-journal-item-save", "input-journal-item-account-debit");
 
             // Save journal item
             document
@@ -347,45 +374,7 @@
                     });
                 }
             }
-
-            // Search listener
-            // document
-            //     .getElementById("search-box")
-            //     .addEventListener("click", () => {
-            //         openModal();
-            //     });
-
-            // Document navigation
-            // document
-            //     .getElementById("document-next")
-            //     .addEventListener("click", () => {
-            //         if (state.activeJournalId < state.lastJournalId) {
-            //             update({
-            //                 action: "GET_JOURNAL",
-            //                 payload: state.activeJournalId + 1
-            //             });
-            //         }
-            //     });
-
-            // // Document navigation
-            // document
-            //     .getElementById("document-previous")
-            //     .addEventListener("click", () => {
-            //         console.log("click");
-            //         if (state.activeJournalId >= 2) {
-            //             update({
-            //                 action: "GET_JOURNAL",
-            //                 payload: state.activeJournalId - 1
-            //             });
-            //         }
-            //     });
         }
-
-        // Won't work directly
-        // ipcRenderer.on('set-journal-active-id', (e, args) => {
-        //     console.log(e, args);
-        //     // e.sender.send("manipulatedData", manData); // send message back to sender
-        // })
 
         // SET ACTIVE JOURNAL ITEM TO NULL ON CHANGE
         ipcRenderer.on("set-journal-active-id", (e, args) => {
