@@ -4,68 +4,92 @@
 <head>
     <title>Налог</title>
     <link rel="stylesheet" type="text/css" href="../styles.css" />
-    <link rel="stylesheet" type="text/css" href="../lib/flatpickr/flatpickr.css" />
+    <!-- <link rel="stylesheet" type="text/css" href="../lib/flatpickr/flatpickr.css" /> -->
     <link rel="stylesheet" type="text/css" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css" />
-
-    <script src="../scripts.js"></script>
 </head>
 
 <body>
     <div id="app" class="container"></div>
     <script>
+        require('../../utils/utils.js')();
         const {
             remote,
             ipcRenderer
         } = require("electron");
 
-        ipcRenderer.on("foo", (e, args) => {
-            state.journalId = args;
-            update({
-                action: "GET_JOURNAL"
-            });
-        });
+        // Everything goes and is taken from state. No direct manipulation.
 
         // TODO: Load module local data on startup like accounts, companies. Add a refresh button to reload new data.
 
         // TODO: Refactor inputs into transaction inputs.
-        state = {
-            lastJournalId: null,
+        let state = {
             journalId: null,
             header: {
                 journal_key: "",
+                journal_type_id: "",
                 journal_date: ""
             },
-            journal: [],
+            items: [],
             activeJournalItemId: null,
             focusedElement: "input-journal-item-account-debit",
             inputs: {
-                company: "",
-                date: "",
-                type: "",
-                document: "",
-                accountDebit: "",
-                accountCredit: "",
-                amountDebit: "",
-                amountCredit: ""
+                account_debit: null,
+                account_credit: null,
+                amount_debit: null,
+                amount_credit: null,
+                document_key: null,
+                document_date: null,
+                company_name: null, // TODO: How can the company_id be stored here, instead in the SAVE action?
             },
-            balance: {
-                total_debit: "",
-                total_credit: "",
-                balance: ""
-            }
+            total_debit: 0,
+            total_credit: 0,
+            balance: 0,
+            companies: []
         };
 
-        function update(msg) {
-            switch (msg.action) {
+        // Initializing
+        // TODO: Make it a promise all that invokes view at end.
+        ipcRenderer.on("foo", (e, args) => {
+            state.journalId = args;
+            update({
+                action: "GET_COMPANIES"
+            })
+            update({
+                action: "GET_JOURNAL_HEADER"
+            });
+            update({
+                action: "GET_JOURNAL_ITEMS"
+            });
+        });
 
-                case "GET_JOURNAL":
+        function update(msg) {
+            // console.log("BEFORE update", state)
+            switch (msg.action) {
+                case "GET_COMPANIES":
+                    fetch(`http://localhost:8080/company`)
+                        .then(res => res.json())
+                        .then(data => {
+                            state.companies = data;
+                        })
+                        .catch(err => err);
+                    break;
+
+                case "GET_JOURNAL_HEADER":
                     fetch(`http://localhost:8080/journals/${state.journalId}`)
                         .then(res => res.json())
                         .then(data => {
-                            state.header = data.header;
-                            state.journal = data.items;
-                            state.balance = data.balance;
-                            document.title = "Налог - " + data.header.journal_key;
+                            state.header = data;
+                            document.title = "Налог - " + data.journal_key;
+                            view(state);
+                        })
+                        .catch(err => err);
+                    break;
+
+                case "GET_JOURNAL_ITEMS":
+                    fetch(`http://localhost:8080/journals/${state.journalId}/items`)
+                        .then(res => res.json())
+                        .then(data => {
+                            state.items = data;
                             view(state);
                             // document
                             //     .getElementById("grid")
@@ -74,82 +98,134 @@
                         .catch(err => err);
                     break;
 
-                case "SET_JOURNAL_ITEM":
-                    // console.log(msg.payload)
+                case "SET_INPUTS_JOURNAL_ITEM":
                     state.activeJournalItemId = msg.payload.rowId;
-                    state.inputs = msg.payload.inputs;
+                    // Doing state.inputs = state.items.filter() creates a weird ass bug that deletes items data??? wtf
+                    let temp = state.items.filter(item => item.id == state.activeJournalItemId)[0];
+                    // Does this for every property: state.inputs.document_key = temp.document_key;
+                    for (let key in state.inputs) { //
+                        state.inputs[key] = temp[key];
+                    }
                     view(state);
+                    break;
+
+                case "GET_INPUTS_JOURNAL_ITEM":
+                    state.inputs.account_debit = value("input-journal-item-account-debit");
+                    state.inputs.account_credit = value("input-journal-item-account-credit");
+                    state.inputs.amount_debit = parseFloat(value("input-journal-item-amount-debit"));
+                    state.inputs.amount_credit = parseFloat(value("input-journal-item-amount-credit"));
+                    // state.inputs.company_id = parseInt(value("input-journal-item-company"));
+                    state.inputs.company_id = parseInt(getDatalistValue('input-journal-item-company', "id"));
+                    state.inputs.document_date = value("input-journal-item-date");
+                    state.inputs.document_key = value("input-journal-item-document");
                     break;
 
                 case "CLEAR_INPUTS_JOURNAL_ITEM":
                     state.activeJournalItemId = null;
-                    state.inputs.company = "";
-                    state.inputs.date = "";
-                    state.inputs.type = "";
-                    state.inputs.document = "";
-                    state.inputs.accountDebit = "";
-                    state.inputs.accountCredit = "";
-                    state.inputs.amountDebit = "";
-                    state.inputs.amountCredit = "";
+                    // Set all inputs to ""
+                    for (let key in state.inputs) { //
+                        state.inputs[key] = "";
+                    }
                     view(state);
                     break;
 
-                    // Od model treba da gi zima, ne od document
+                case "CLEAR_INPUTS_JOURNAL_ITEM_PARTIAL":
+                    state.inputs.account_debit = ""
+                    state.inputs.amount_debit = ""
+                    state.inputs.account_credit = ""
+                    state.inputs.amount_credit = ""
+                    break;
+
+                    // TODO: Od model kako da gi zima, ne od document
                 case "SAVE_JOURNAL_ITEM":
-                    fetch("http://localhost:8080/journals", {
-                            method: "POST",
-                            headers: {
-                                Accept: "application/json",
-                                "Content-type": "application/json"
-                            }, // TODO: Abstract into GET_INPUTS action
-                            body: JSON.stringify({
-                                journalId: state.journalId,
-                                accountDebit: document.getElementById("input-journal-item-account-debit").value,
-                                accountCredit: document.getElementById("input-journal-item-account-credit")
-                                    .value,
-                                amountDebit: document.getElementById("input-journal-item-amount-debit").value,
-                                amountCredit: document.getElementById("input-journal-item-amount-credit").value,
-                                document: document.getElementById("input-journal-item-document").value,
-                                date: document.getElementById("input-journal-item-date").value,
-                                company: document.getElementById("input-journal-item-company").value,
+                    update({
+                        action: "GET_INPUTS_JOURNAL_ITEM"
+                    });
+                    if ( // Check for debit/credit combos
+                        state.inputs.account_debit != "" && state.inputs.amount_debit != "" ||
+                        state.inputs.account_credit != "" && state.inputs.amount_credit != ""
+                    ) {
+                        fetch(`http://localhost:8080/journals/${state.journalId}/items`, {
+                                method: "POST",
+                                headers: {
+                                    Accept: "application/json",
+                                    "Content-type": "application/json"
+                                }, // TODO: Abstract into GET_INPUTS action
+                                body: JSON.stringify({
+                                    accountDebit: state.inputs.account_debit,
+                                    accountCredit: state.inputs.account_credit,
+                                    amountDebit: state.inputs.amount_debit,
+                                    amountCredit: state.inputs.amount_credit,
+                                    document: state.inputs.document_key,
+                                    date: toDate(state.inputs.document_date),
+                                    company: state.inputs.company_id,
+                                })
                             })
-                        })
-                        .then(res => res.json()) // Return data.
-                        .then(data => {
-                            // display error if failed
-                            update({
-                                action: "GET_JOURNAL",
-                                payload: state.journalId
-                            });
-                        })
-                        .catch(err => err);
+                            .then(res => res.json()) // Return data.
+                            .then(data => {
+                                update({
+                                    action: "CLEAR_INPUTS_JOURNAL_ITEM_PARTIAL"
+                                });
+
+                                update({
+                                    action: "GET_JOURNAL_ITEMS"
+                                });
+                            })
+                            .catch(err => err);
+                    } else {
+                        alert("required fields")
+                    }
                     break;
 
                 case "UPDATE_JOURNAL_ITEM":
-                    console.log(state.activeJournalItemId)
-                    fetch("http://localhost:8080/journals", {
+                    update({
+                        action: "GET_INPUTS_JOURNAL_ITEM"
+                    });
+                    fetch(`http://localhost:8080/journals/${state.journalId}/items/${state.activeJournalItemId}`, {
                             method: "PUT",
                             headers: {
                                 Accept: "application/json",
                                 "Content-type": "application/json"
                             },
                             body: JSON.stringify({
-                                journalItemId: state.activeJournalItemId,
-                                company: document.getElementById("input-journal-company").value,
-                                date: document.getElementById("input-journal-date").value,
-                                document: document.getElementById("input-journal-document").value,
-                                accountDebit: document.getElementById("input-journal-account-debit").value,
-                                accountCredit: document.getElementById("input-journal-account-credit").value,
-                                amountDebit: document.getElementById("input-journal-amount-debit").value,
-                                amountCredit: document.getElementById("input-journal-amount-credit").value
+                                accountDebit: state.inputs.account_debit,
+                                accountCredit: state.inputs.account_credit,
+                                amountDebit: state.inputs.amount_debit,
+                                amountCredit: state.inputs.amount_credit,
+                                document: state.inputs.document_key,
+                                date: toDate(state.inputs.document_date),
+                                company: state.inputs.company_id,
                             })
                         })
                         .then(res => res.json()) // Return data.
                         .then(data => {
                             // display error if failed
                             update({
-                                action: "GET_JOURNAL",
-                                payload: state.journalId
+                                action: "GET_JOURNAL_ITEMS"
+                            });
+                            update({
+                                action: "CLEAR_INPUTS_JOURNAL_ITEM"
+                            });
+                        })
+                        .catch(err => err);
+                    break;
+
+                case "DELETE_JOURNAL_ITEM":
+                    fetch(`http://localhost:8080/journals/${state.journalId}/items/${state.activeJournalItemId}`, {
+                            method: "DELETE",
+                            headers: {
+                                Accept: "application/json",
+                                "Content-type": "application/json"
+                            }
+                        })
+                        .then(res => res.json()) // Return data.
+                        .then(data => {
+                            // display error if failed
+                            update({
+                                action: "GET_JOURNAL_ITEMS"
+                            });
+                            update({
+                                action: "CLEAR_INPUTS_JOURNAL_ITEM"
                             });
                         })
                         .catch(err => err);
@@ -162,7 +238,7 @@
             //     ...debug
             // } = state;
             // console.log(JSON.stringify(debug));
-            console.log(state)
+            console.log("AFTER update", state)
             // TODO: DALI SEKOGAS DA IMA VIEW STATE? BI TREBALO.
         }
 
@@ -181,6 +257,15 @@
                             <label>Датум</label>
                             <input id="input-journal-date" required value="${data.journal_date}">
                         </div>
+                        <div class="input-group">
+                            <label>Вид</label>
+                            <input id="input-journal-type" list="journal-type" multiple value="${data.journal_type_id}">
+                            <datalist id="journal-type">
+                                <option value="Вид 1">
+                                <option value="Вид 2">
+                                <option value="Вид 3">
+                            </datalist>
+                        </div>
                         <button id="button-journal-save" class="btn btn-save"><i class="fas fa-check"></i></button>
                         <button class="btn btn-delete">
                             <i class="fas fa-trash"></i>
@@ -189,18 +274,19 @@
                 `;
             }
 
-            function journal(data) {
+            function items(data) {
                 let rows = "";
                 for (let i = 0; i < data.length; i++) {
                     rows +=
                         `<tr data-id="${data[i].id}" ${data[i].id == state.activeJournalItemId ? `class="active-row"` : ""}>
-                            <td>${data[i].account_debit_id}</td>
-                            <td>${data[i].account_credit_id}</td>
-                            <td>${data[i].amount_debit}</td>
-                            <td>${data[i].amount_credit}</td>
-                            <td>${data[i].document_key}</td>
-                            <td>${data[i].document_date}</td>
-                            <td>${data[i].company_id}</td>
+                            <td>${nullToEmpty(data[i].account_debit)}</td>
+                            <td>${nullToEmpty(data[i].account_credit)}</td>
+                            <td>${nullToEmpty(data[i].amount_debit)}</td>
+                            <td>${nullToEmpty(data[i].amount_credit)}</td>
+                            <td>${nullToEmpty(data[i].document_key)}</td>
+                            <td>${nullToEmpty(data[i].document_date)}</td>
+                            <td>${nullToEmpty(data[i].company_name)}</td>
+                            <td>${nullToEmpty(data[i].company_id)}</td>
                         </tr>`;
                 }
 
@@ -215,11 +301,28 @@
                                 <th>Документ</th>
                                 <th>Датум</th>
                                 <th>Фирма</th> 
+                                <th>Фирма ID</th> 
                             </thead>
                             <tbody>${rows}</tbody>
                         </table>
                     </div>
                 `;
+            }
+
+            function companies() {
+                let html = "";
+                state.companies.map(company => {
+                    html +=
+                        `<option 
+                            data-id="${company.id}" 
+                            data-key="${company.company_key}"
+                            data-id="${company.name}"
+                            value="${company.name}"
+                        >
+                            ${company.name}
+                        </option>`
+                })
+                return html;
             }
 
             function input(data) {
@@ -228,53 +331,70 @@
                         <button id="button-journal-item-new" class="btn btn-new"><i class="fas fa-plus"></i></button>
                         <div class="input-group">
                             <label>Конто Должи</label>
-                            <input type="text" id="input-journal-item-account-debit" value="${data.accountDebit}">
+                            <input type="text" id="input-journal-item-account-debit" value="${nullToEmpty(data.account_debit)}">
                         </div>
                         <div class="input-group">
                             <label>Конто Побарува</label>
-                            <input type="text" id="input-journal-item-account-credit" value="${data.accountCredit}">
+                            <input type="text" id="input-journal-item-account-credit" value="${nullToEmpty(data.account_credit)}">
                         </div>
                         <div class="input-group">
                             <label>Износ Должи</label>
-                            <input type="text" id="input-journal-item-amount-debit" value="${data.amountDebit}">
+                            <input type="text" id="input-journal-item-amount-debit" value="${nullToEmpty(data.amount_debit)}">
                         </div>
                         <div class="input-group">
                             <label>Износ Побарува</label>
-                            <input type="text" id="input-journal-item-amount-credit" value="${data.amountCredit}">
+                            <input type="text" id="input-journal-item-amount-credit" value="${nullToEmpty(data.amount_credit)}">
                         </div>
                         <div class="input-group">
                             <label>Документ</label>
-                            <input type="text" id="input-journal-item-document" value="${data.document}">
+                            <input type="text" id="input-journal-item-document" value="${nullToEmpty(data.document_key)}">
                         </div>
                         <div class="input-group">
                             <label>Датум</label>
-                            <input id="input-journal-item-date" required value="${data.date}">
+                            <input id="input-journal-item-date" required value="${nullToEmpty(data.document_date)}">
                         </div>
                         <div class="input-group">    
                             <label>Фирма</label>
-                            <input type="text" id="input-journal-item-company" value="${data.company}">
+                            <input type="text" id="input-journal-item-company" list="input-companies" value="${nullToEmpty(data.company_name)}">
+                            <datalist id="input-companies">
+                                ${companies()}
+                            </datalist>
                         </div>
                         <button id="button-journal-item-save" class="btn btn-save"><i class="fas fa-check"></i></button>
-                        <button class="btn btn-delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button id="button-journal-item-delete" class="btn btn-delete"><i class="fas fa-trash"></i></button>
                     </div>
                 `;
+            }
+
+            function balance(data) {
+                state.total_debit = 0;
+                state.total_credit = 0;
+                state.balance = 0;
+
+                data.map(item => {
+                    state.total_debit += item.amount_debit;
+                    state.total_credit += item.amount_credit;
+                    // console.log(state.balance)
+                })
+
+                state.balance = state.total_debit - state.total_credit;
+
+                return `
+                    <span style="width: 500px;">
+                        <span><b>Должи:</b> ${state.total_debit}</span>
+                        <span><b>Побарува:</b> ${state.total_credit}</span>
+                        <span><b>Салдо:</b> <span style="${state.balance != 0 ? "color: red" : ""}">${state.balance}</span></span>
+                    </span>
+                `
             }
 
             html =
                 `
                 ${header(state.header)}
-                ${journal(state.journal)}
+                ${items(state.items)}
                 ${input(state.inputs)}
-                <span style="width: 500px;">
-                    <span><b>Должи:</b> ${state.balance.total_debit}</span>
-                    <span><b>Побарува:</b> ${state.balance.total_credit}</span>
-                    <span><b>Салдо:</b> ${state.balance.balance}</span>
-                </span>
+                ${balance(state.items)}
             `;
-
-            // console.log(state)
 
             // Inject i.e. render HTML
             document.getElementById("app").innerHTML = html;
@@ -293,26 +413,15 @@
             );
 
             // TODO: How can this be abstracted?
-            // Select row and populate inputs.
+            // Select row and populate inputs from state.
             function rowClickHandler(e) {
-                let inputs = e.target.parentElement.cells;
                 let rowId = e.target.parentElement.dataset.id;
                 // prevents selecting the header as a row, and populating the inputs
                 if (rowId != undefined) {
                     update({
-                        action: "SET_JOURNAL_ITEM",
+                        action: "SET_INPUTS_JOURNAL_ITEM",
                         payload: {
                             rowId: rowId,
-                            inputs: {
-                                accountDebit: inputs[0].innerText,
-                                accountCredit: inputs[1].innerText,
-                                amountDebit: inputs[2].innerText,
-                                amountCredit: inputs[3].innerText,
-                                document: inputs[4].innerText,
-                                date: inputs[5].innerText,
-                                company: inputs[6].innerText,
-
-                            }
                         }
                     });
                 }
@@ -333,14 +442,6 @@
                     });
                 });
 
-            document.addEventListener("keyup", (e) => {
-                if (e.key === "Escape") {
-                    update({
-                        action: "CLEAR_INPUTS_JOURNAL_ITEM"
-                    });
-                }
-            })
-
             // TODO: How can this be further abstracted with UPDATE?
             // When enter is pressed, jump to field
             onEnterFocus("input-journal-item-account-debit", "input-journal-item-account-credit");
@@ -356,41 +457,41 @@
             document
                 .getElementById("button-journal-item-save")
                 .addEventListener("click", () => {
-                    saveButtonClickHandler();
+                    if (state.activeJournalItemId === null) {
+                        update({
+                            action: "SAVE_JOURNAL_ITEM"
+                        });
+                    } else {
+                        console.log("update");
+                        // TODO: Update action
+                        update({
+                            action: "UPDATE_JOURNAL_ITEM"
+                        });
+                    }
                 });
 
-            function saveButtonClickHandler() {
-                console.log("save clicked");
-                if (state.activeJournalItemId === null) {
-                    console.log("save");
+            // Delete journal item
+            document
+                .getElementById("button-journal-item-delete")
+                .addEventListener("click", () => {
                     update({
-                        action: "SAVE_JOURNAL_ITEM"
+                        action: "DELETE_JOURNAL_ITEM"
                     });
-                } else {
-                    console.log("update");
-                    // TODO: Update action
-                    update({
-                        action: "UPDATE_JOURNAL_ITEM"
-                    });
-                }
-            }
+                });
         }
 
-        // SET ACTIVE JOURNAL ITEM TO NULL ON CHANGE
-        ipcRenderer.on("set-journal-active-id", (e, args) => {
-            // console.log(args);  // Prints 'foo!'
-            update({
-                action: "GET_JOURNAL",
-                payload: args
-            });
-        });
-
-        // Initialize
-        // update({
-        //     action: "GET_LAST_JOURNAL"
-        // });
         view(state);
         // Scroll to bottom of table
+
+        // This needs to be outside because it stacks with each view call, because it's a window event
+        document
+            .addEventListener("keyup", (e) => {
+                if (e.key === "Escape") {
+                    update({
+                        action: "CLEAR_INPUTS_JOURNAL_ITEM"
+                    });
+                }
+            })
     </script>
 </body>
 
