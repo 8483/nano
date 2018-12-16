@@ -25,24 +25,24 @@
         let state = {
             journalId: null,
             header: {
-                journal_key: "",
-                journal_type_id: "",
-                journal_date: ""
+                journalKey: "",
+                journalTypeId: "",
+                journalDate: ""
             },
             items: [],
             activeJournalItemId: null,
             focusedElement: "input-journal-item-account-debit",
             inputs: {
-                account_debit: null,
-                account_credit: null,
-                amount_debit: null,
-                amount_credit: null,
-                document_key: null,
-                document_date: null,
-                company_name: null, // TODO: How can the company_id be stored here, instead in the SAVE action?
+                accountDebit: null,
+                accountCredit: null,
+                amountDebit: null,
+                amountCredit: null,
+                documentKey: null,
+                documentDate: null,
+                companyName: null, // TODO: How can the companyId be stored here, instead in the SAVE action?
             },
-            total_debit: 0,
-            total_credit: 0,
+            totalDebit: 0,
+            totalCredit: 0,
             balance: 0,
             companies: []
         };
@@ -79,7 +79,7 @@
                         .then(res => res.json())
                         .then(data => {
                             state.header = data;
-                            document.title = "Налог - " + data.journal_key;
+                            document.title = "Налог - " + data.journalKey;
                             view(state);
                         })
                         .catch(err => err);
@@ -102,7 +102,7 @@
                     state.activeJournalItemId = msg.payload.rowId;
                     // Doing state.inputs = state.items.filter() creates a weird ass bug that deletes items data??? wtf
                     let temp = state.items.filter(item => item.id == state.activeJournalItemId)[0];
-                    // Does this for every property: state.inputs.document_key = temp.document_key;
+                    // Does this for every property: state.inputs.documentKey = temp.documentKey;
                     for (let key in state.inputs) { //
                         state.inputs[key] = temp[key];
                     }
@@ -110,14 +110,14 @@
                     break;
 
                 case "GET_INPUTS_JOURNAL_ITEM":
-                    state.inputs.account_debit = value("input-journal-item-account-debit");
-                    state.inputs.account_credit = value("input-journal-item-account-credit");
-                    state.inputs.amount_debit = parseFloat(value("input-journal-item-amount-debit"));
-                    state.inputs.amount_credit = parseFloat(value("input-journal-item-amount-credit"));
-                    // state.inputs.company_id = parseInt(value("input-journal-item-company"));
-                    state.inputs.company_id = parseInt(getDatalistValue('input-journal-item-company', "id"));
-                    state.inputs.document_date = value("input-journal-item-date");
-                    state.inputs.document_key = value("input-journal-item-document");
+                    state.inputs.accountDebit = value("input-journal-item-account-debit");
+                    state.inputs.accountCredit = value("input-journal-item-account-credit");
+                    state.inputs.amountDebit = parseFloat(value("input-journal-item-amount-debit"));
+                    state.inputs.amountCredit = parseFloat(value("input-journal-item-amount-credit"));
+                    // state.inputs.companyId = parseInt(value("input-journal-item-company"));
+                    state.inputs.companyId = parseInt(getDatalistValue('input-journal-item-company', "id"));
+                    state.inputs.documentDate = value("input-journal-item-date");
+                    state.inputs.documentKey = value("input-journal-item-document");
                     break;
 
                 case "CLEAR_INPUTS_JOURNAL_ITEM":
@@ -131,10 +131,10 @@
 
                     // TODO: Company field does not repeat
                 case "CLEAR_INPUTS_JOURNAL_ITEM_PARTIAL":
-                    state.inputs.account_debit = ""
-                    state.inputs.amount_debit = ""
-                    state.inputs.account_credit = ""
-                    state.inputs.amount_credit = ""
+                    state.inputs.accountDebit = ""
+                    state.inputs.amountDebit = ""
+                    state.inputs.accountCredit = ""
+                    state.inputs.amountCredit = ""
                     break;
 
                     // TODO: Od model kako da gi zima, ne od document
@@ -143,8 +143,8 @@
                         action: "GET_INPUTS_JOURNAL_ITEM"
                     });
                     if ( // Check for debit/credit combos
-                        state.inputs.account_debit != "" && state.inputs.amount_debit != "" ||
-                        state.inputs.account_credit != "" && state.inputs.amount_credit != ""
+                        state.inputs.accountDebit != "" && state.inputs.amountDebit != "" ||
+                        state.inputs.accountCredit != "" && state.inputs.amountCredit != ""
                     ) {
                         fetch(`http://localhost:8080/journals/${state.journalId}/items`, {
                                 method: "POST",
@@ -153,21 +153,23 @@
                                     "Content-type": "application/json"
                                 }, // TODO: Abstract into GET_INPUTS action
                                 body: JSON.stringify({
-                                    accountDebit: state.inputs.account_debit,
-                                    accountCredit: state.inputs.account_credit,
-                                    amountDebit: state.inputs.amount_debit,
-                                    amountCredit: state.inputs.amount_credit,
-                                    document: state.inputs.document_key,
-                                    date: toDate(state.inputs.document_date),
-                                    company: state.inputs.company_id,
+                                    accountDebit: state.inputs.accountDebit,
+                                    accountCredit: state.inputs.accountCredit,
+                                    amountDebit: state.inputs.amountDebit,
+                                    amountCredit: state.inputs.amountCredit,
+                                    document: state.inputs.documentKey,
+                                    date: toDate(state.inputs.documentDate),
+                                    company: state.inputs.companyId,
                                 })
                             })
                             .then(res => res.json()) // Return data.
                             .then(data => {
+                                console.log(data)
                                 update({
                                     action: "CLEAR_INPUTS_JOURNAL_ITEM_PARTIAL"
                                 });
 
+                                // TODO: If 200 status, Make the UI change local with push to array, instead of a get request
                                 update({
                                     action: "GET_JOURNAL_ITEMS"
                                 });
@@ -189,24 +191,27 @@
                                 "Content-type": "application/json"
                             },
                             body: JSON.stringify({
-                                accountDebit: state.inputs.account_debit,
-                                accountCredit: state.inputs.account_credit,
-                                amountDebit: state.inputs.amount_debit,
-                                amountCredit: state.inputs.amount_credit,
-                                document: state.inputs.document_key,
-                                date: toDate(state.inputs.document_date),
-                                company: state.inputs.company_id,
+                                accountDebit: state.inputs.accountDebit,
+                                accountCredit: state.inputs.accountCredit,
+                                amountDebit: state.inputs.amountDebit,
+                                amountCredit: state.inputs.amountCredit,
+                                document: state.inputs.documentKey,
+                                date: toDate(state.inputs.documentDate),
+                                company: state.inputs.companyId,
                             })
                         })
                         .then(res => res.json()) // Return data.
-                        .then(data => {
+                        .then(result => {
+                            console.log(result)
                             // display error if failed
-                            update({
-                                action: "GET_JOURNAL_ITEMS"
-                            });
-                            update({
-                                action: "CLEAR_INPUTS_JOURNAL_ITEM"
-                            });
+                            if (result.status === 200) {
+                                update({
+                                    action: "GET_JOURNAL_ITEMS"
+                                });
+                                update({
+                                    action: "CLEAR_INPUTS_JOURNAL_ITEM"
+                                });
+                            }
                         })
                         .catch(err => err);
                     break;
@@ -252,15 +257,15 @@
                         <button id="button-journal-new" class="btn btn-new"><i class="fas fa-plus"></i></button>
                         <div class="input-group">    
                             <label>Број</label>
-                            <input type="text" id="input-journal-key" value="${data.journal_key}">
+                            <input type="text" id="input-journal-key" value="${data.journalKey}">
                         </div>
                         <div class="input-group">
                             <label>Датум</label>
-                            <input id="input-journal-date" required value="${data.journal_date}">
+                            <input id="input-journal-date" required value="${data.journalDate}">
                         </div>
                         <div class="input-group">
                             <label>Вид</label>
-                            <input id="input-journal-type" list="journal-type" multiple value="${data.journal_type_id}">
+                            <input id="input-journal-type" list="journal-type" multiple value="${data.journalTypeId}">
                             <datalist id="journal-type">
                                 <option value="Вид 1">
                                 <option value="Вид 2">
@@ -280,14 +285,14 @@
                 for (let i = 0; i < data.length; i++) {
                     rows +=
                         `<tr data-id="${data[i].id}" ${data[i].id == state.activeJournalItemId ? `class="active-row"` : ""}>
-                            <td>${nullToEmpty(data[i].account_debit)}</td>
-                            <td>${nullToEmpty(data[i].account_credit)}</td>
-                            <td>${nullToEmpty(data[i].amount_debit)}</td>
-                            <td>${nullToEmpty(data[i].amount_credit)}</td>
-                            <td>${nullToEmpty(data[i].document_key)}</td>
-                            <td>${nullToEmpty(data[i].document_date)}</td>
-                            <td>${nullToEmpty(data[i].company_name)}</td>
-                            <td>${nullToEmpty(data[i].company_id)}</td>
+                            <td>${nullToEmpty(data[i].accountDebit)}</td>
+                            <td>${nullToEmpty(data[i].accountCredit)}</td>
+                            <td>${nullToEmpty(data[i].amountDebit)}</td>
+                            <td>${nullToEmpty(data[i].amountCredit)}</td>
+                            <td>${nullToEmpty(data[i].documentKey)}</td>
+                            <td>${nullToEmpty(data[i].documentDate)}</td>
+                            <td>${nullToEmpty(data[i].companyName)}</td>
+                            <td>${nullToEmpty(data[i].companyId)}</td>
                         </tr>`;
                 }
 
@@ -316,7 +321,7 @@
                     html +=
                         `<option 
                             data-id="${company.id}" 
-                            data-key="${company.company_key}"
+                            data-key="${company.companyKey}"
                             data-id="${company.name}"
                             value="${company.name}"
                         >
@@ -332,31 +337,31 @@
                         <button id="button-journal-item-new" class="btn btn-new"><i class="fas fa-plus"></i></button>
                         <div class="input-group">
                             <label>Конто Должи</label>
-                            <input type="text" id="input-journal-item-account-debit" value="${nullToEmpty(data.account_debit)}">
+                            <input type="text" id="input-journal-item-account-debit" value="${nullToEmpty(data.accountDebit)}">
                         </div>
                         <div class="input-group">
                             <label>Конто Побарува</label>
-                            <input type="text" id="input-journal-item-account-credit" value="${nullToEmpty(data.account_credit)}">
+                            <input type="text" id="input-journal-item-account-credit" value="${nullToEmpty(data.accountCredit)}">
                         </div>
                         <div class="input-group">
                             <label>Износ Должи</label>
-                            <input type="text" id="input-journal-item-amount-debit" value="${nullToEmpty(data.amount_debit)}">
+                            <input type="text" id="input-journal-item-amount-debit" value="${nullToEmpty(data.amountDebit)}">
                         </div>
                         <div class="input-group">
                             <label>Износ Побарува</label>
-                            <input type="text" id="input-journal-item-amount-credit" value="${nullToEmpty(data.amount_credit)}">
+                            <input type="text" id="input-journal-item-amount-credit" value="${nullToEmpty(data.amountCredit)}">
                         </div>
                         <div class="input-group">
                             <label>Документ</label>
-                            <input type="text" id="input-journal-item-document" value="${nullToEmpty(data.document_key)}">
+                            <input type="text" id="input-journal-item-document" value="${nullToEmpty(data.documentKey)}">
                         </div>
                         <div class="input-group">
                             <label>Датум</label>
-                            <input id="input-journal-item-date" required value="${nullToEmpty(data.document_date)}">
+                            <input id="input-journal-item-date" required value="${nullToEmpty(data.documentDate)}">
                         </div>
                         <div class="input-group">    
                             <label>Фирма</label>
-                            <input type="text" id="input-journal-item-company" list="input-companies" value="${nullToEmpty(data.company_name)}">
+                            <input type="text" id="input-journal-item-company" list="input-companies" value="${nullToEmpty(data.companyName)}">
                             <datalist id="input-companies">
                                 ${companies()}
                             </datalist>
@@ -368,22 +373,22 @@
             }
 
             function balance(data) {
-                state.total_debit = 0;
-                state.total_credit = 0;
+                state.totalDebit = 0;
+                state.totalCredit = 0;
                 state.balance = 0;
 
                 data.map(item => {
-                    state.total_debit += item.amount_debit;
-                    state.total_credit += item.amount_credit;
+                    state.totalDebit += item.amountDebit;
+                    state.totalCredit += item.amountCredit;
                     // console.log(state.balance)
                 })
 
-                state.balance = state.total_debit - state.total_credit;
+                state.balance = state.totalDebit - state.totalCredit;
 
                 return `
                     <span style="width: 500px;">
-                        <span><b>Должи:</b> ${state.total_debit}</span>
-                        <span><b>Побарува:</b> ${state.total_credit}</span>
+                        <span><b>Должи:</b> ${state.totalDebit}</span>
+                        <span><b>Побарува:</b> ${state.totalCredit}</span>
                         <span><b>Салдо:</b> <span style="${state.balance != 0 ? "color: red" : ""}">${state.balance}</span></span>
                     </span>
                 `

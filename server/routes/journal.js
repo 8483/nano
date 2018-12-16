@@ -26,14 +26,14 @@ router.get("/journals", function (req, res) {
         from (
             select 
                 j.id,
-                journal_key,
-                journal_type_id,
-                DATE_FORMAT(journal_date, "%d.%m.%Y") as journal_date,
-                (select sum(amount_debit) from journal_item ji where ji.journal_id = j.id) as debit,
-                (select sum(amount_credit) from journal_item ji where ji.journal_id = j.id) as credit
+                journalKey,
+                journalTypeId,
+                DATE_FORMAT(journalDate, "%d.%m.%Y") as journalDate,
+                (select sum(amountDebit) from journalItem ji where ji.journalId = j.id) as debit,
+                (select sum(amountCredit) from journalItem ji where ji.journalId = j.id) as credit
             from journal j
         ) t1
-        order by journal_key desc
+        order by journalKey desc
     `;
 
     connection.query(query, function (error, results, fields) {
@@ -59,9 +59,9 @@ router.get("/journals/:id", function (req, res) {
 
     const queryJournalHeader = `
         select
-            journal_key,
-            journal_type_id,
-            DATE_FORMAT(journal_date, "%d.%m.%Y") as journal_date
+            journalKey,
+            journalTypeId,
+            DATE_FORMAT(journalDate, "%d.%m.%Y") as journalDate
         from journal where id = ?;
     `;
 
@@ -92,20 +92,20 @@ router.get("/journals/:id/items", function (req, res) {
     const queryJournalItems = `
         select
             ji.id,
-            company_id,
-            c.company_key company_key,
-            c.name company_name,
-            DATE_FORMAT(document_date, "%d.%m.%Y") document_date,
-            document_key,
-            account_debit,
-            account_credit,
-            amount_debit,
-            amount_credit
-        from journal_item ji
+            companyId,
+            c.companyKey companyKey,
+            c.name companyName,
+            DATE_FORMAT(documentDate, "%d.%m.%Y") documentDate,
+            documentKey,
+            accountDebit,
+            accountCredit,
+            amountDebit,
+            amountCredit
+        from journalItem ji
             left join company c
-                on c.id = ji.company_id
-        where journal_id = ?
-        order by time_insert asc;
+                on c.id = ji.companyId
+        where journalId = ?
+        order by timeInsert asc;
     `;
 
     connection.query(queryJournalItems, journalId, function (error, results, fields) {
@@ -134,8 +134,8 @@ router.get("/journals/:journalId/items/:journalItemId", function (req, res) {
 
     const query = `
         select * 
-        from journal_item
-        where journal_id = ? and id = ?
+        from journalItem
+        where journalId = ? and id = ?
     `;
 
     connection.query(query, [journalId, journalItemId], function (error, results, fields) {
@@ -173,23 +173,23 @@ router.post("/journals/:journalId/items", function (req, res) {
     connection.connect();
 
     const query = `
-            insert into journal_item (
-                journal_id, 
-                company_id, 
-                document_date, 
-                document_key, 
-                account_debit, 
-                account_credit, 
-                amount_debit, 
-                amount_credit,
-                time_insert
+            insert into journalItem (
+                journalId, 
+                companyId, 
+                documentDate, 
+                documentKey, 
+                accountDebit, 
+                accountCredit, 
+                amountDebit, 
+                amountCredit,
+                timeInsert
             )
             values (?, ?, ?, ?, ?, ?, ?, ?, now())
         `;
 
     console.log(req.body)
 
-    let journal_items = [
+    let journalItems = [
         journalId,
         req.body.company ? parseInt(req.body.company) : null,
         req.body.date ? req.body.date : null,
@@ -200,9 +200,9 @@ router.post("/journals/:journalId/items", function (req, res) {
         req.body.amountCredit ? parseFloat(req.body.amountCredit) : null
     ];
 
-    // console.log(journal_items)
+    // console.log(journalItems)
 
-    connection.query(query, journal_items, function (error, results, fields) {
+    connection.query(query, journalItems, function (error, results, fields) {
         if (error) {
             console.log(error);
             res.status(500).send({
@@ -229,21 +229,21 @@ router.put("/journals/:journalId/items/:journalItemId", function (req, res) {
     connection.connect();
 
     const query = `
-            update journal_item set
-                company_id = ?, 
-                document_date = ?, 
-                document_key = ?, 
-                account_debit = ?, 
-                account_credit = ?, 
-                amount_debit = ?, 
-                amount_credit = ?,
-                time_change = now()
-            where journal_id = ? and id = ?
+            update journalItem set
+                companyId = ?, 
+                documentDate = ?, 
+                documentKey = ?, 
+                accountDebit = ?, 
+                accountCredit = ?, 
+                amountDebit = ?, 
+                amountCredit = ?,
+                timeChange = now()
+            where journalId = ? and id = ?
         `;
 
     console.log(req.body)
 
-    let journal_items = [
+    let journalItems = [
         isInt(req.body.company) ? parseInt(req.body.company) : null,
         req.body.date,
         req.body.document,
@@ -255,16 +255,18 @@ router.put("/journals/:journalId/items/:journalItemId", function (req, res) {
         journalItemId
     ];
 
-    console.log(journal_items)
+    console.log(journalItems)
 
-    connection.query(query, journal_items, function (error, results, fields) {
+    connection.query(query, journalItems, function (error, results, fields) {
         if (error) {
             console.log(error);
             res.status(500).send({
+                status: 500,
                 message: error
             });
         } else {
             res.status(200).send({
+                status: 200,
                 message: results
             });
         }
@@ -283,8 +285,8 @@ router.delete("/journals/:journalId/items/:journalItemId", function (req, res) {
     connection.connect();
 
     const query = `
-            delete from journal_item
-            where journal_id = ? and id = ?
+            delete from journalItem
+            where journalId = ? and id = ?
         `;
 
     connection.query(query, [journalId, journalItemId], function (error, results, fields) {
