@@ -189,7 +189,7 @@ router.post("/journals/:journalId/items", function (req, res) {
 
     console.log(req.body)
 
-    let journalItems = [
+    let journalItem = [
         journalId,
         req.body.company ? parseInt(req.body.company) : null,
         req.body.date ? req.body.date : null,
@@ -200,9 +200,9 @@ router.post("/journals/:journalId/items", function (req, res) {
         req.body.amountCredit ? parseFloat(req.body.amountCredit) : null
     ];
 
-    // console.log(journalItems)
+    // console.log(journalItem)
 
-    connection.query(query, journalItems, function (error, results, fields) {
+    connection.query(query, journalItem, function (error, results, fields) {
         if (error) {
             console.log(error);
             res.status(500).send({
@@ -243,10 +243,10 @@ router.put("/journals/:journalId/items/:journalItemId", function (req, res) {
 
     console.log(req.body)
 
-    let journalItems = [
-        isInt(req.body.company) ? parseInt(req.body.company) : null,
-        req.body.date,
-        req.body.document,
+    let journalItem = [
+        isInt(req.body.companyId) ? parseInt(req.body.companyId) : null,
+        req.body.documentDate ? toDate(req.body.documentDate) : null,
+        req.body.documentKey,
         req.body.accountDebit ? req.body.accountDebit : null,
         req.body.accountCredit ? req.body.accountCredit : null,
         req.body.amountDebit ? parseFloat(req.body.amountDebit) : null,
@@ -255,9 +255,9 @@ router.put("/journals/:journalId/items/:journalItemId", function (req, res) {
         journalItemId
     ];
 
-    console.log(journalItems)
+    // console.log(journalItem)
 
-    connection.query(query, journalItems, function (error, results, fields) {
+    connection.query(query, journalItem, function (error, results, fields) {
         if (error) {
             console.log(error);
             res.status(500).send({

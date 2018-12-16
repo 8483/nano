@@ -146,25 +146,27 @@
                         state.inputs.accountDebit != "" && state.inputs.amountDebit != "" ||
                         state.inputs.accountCredit != "" && state.inputs.amountCredit != ""
                     ) {
+                        let item = {
+                            accountDebit: state.inputs.accountDebit,
+                            accountCredit: state.inputs.accountCredit,
+                            amountDebit: state.inputs.amountDebit,
+                            amountCredit: state.inputs.amountCredit,
+                            documentKey: state.inputs.documentKey,
+                            documentDate: state.inputs.documentDate,
+                            companyId: state.inputs.companyId,
+                        }
+
                         fetch(`http://localhost:8080/journals/${state.journalId}/items`, {
                                 method: "POST",
                                 headers: {
                                     Accept: "application/json",
                                     "Content-type": "application/json"
                                 }, // TODO: Abstract into GET_INPUTS action
-                                body: JSON.stringify({
-                                    accountDebit: state.inputs.accountDebit,
-                                    accountCredit: state.inputs.accountCredit,
-                                    amountDebit: state.inputs.amountDebit,
-                                    amountCredit: state.inputs.amountCredit,
-                                    document: state.inputs.documentKey,
-                                    date: toDate(state.inputs.documentDate),
-                                    company: state.inputs.companyId,
-                                })
+                                body: JSON.stringify(item)
                             })
                             .then(res => res.json()) // Return data.
-                            .then(data => {
-                                console.log(data)
+                            .then(result => {
+                                console.log(result)
                                 update({
                                     action: "CLEAR_INPUTS_JOURNAL_ITEM_PARTIAL"
                                 });
@@ -184,33 +186,75 @@
                     update({
                         action: "GET_INPUTS_JOURNAL_ITEM"
                     });
+
+                    let item = {
+                        accountDebit: state.inputs.accountDebit,
+                        accountCredit: state.inputs.accountCredit,
+                        amountDebit: state.inputs.amountDebit,
+                        amountCredit: state.inputs.amountCredit,
+                        documentKey: state.inputs.documentKey,
+                        documentDate: state.inputs.documentDate,
+                        companyId: state.inputs.companyId,
+                    }
+
+                    // // get old data for item
+                    // let item = state.items.filter(item => item.id == state.activeJournalItemId);
+                    // // console.log("filter", item)
+                    // item.accountDebit = state.inputs.accountDebit;
+                    // item.accountCredit = state.inputs.accountCredit;
+                    // item.amountDebit = state.inputs.amountDebit;
+                    // item.amountCredit = state.inputs.amountCredit;
+                    // item.documentKey = state.inputs.documentKey;
+                    // item.documentDate = state.inputs.documentDate;
+                    // item.company = state.inputs.companyId;
+
+                    // {
+                    //     "accountDebit": "1000",
+                    //     "accountCredit": null,
+                    //     "amountDebit": 500,
+                    //     "amountCredit": null,
+                    //     "documentKey": "321",
+                    //     "documentDate": "29.11.2018",
+                    //     "companyId": 1,
+
+                    //     "id": 9,
+                    //     "companyKey": "001",
+                    //     "companyName": "Фирма 1",
+                    // },
+                    // console.log("item", item)
+
                     fetch(`http://localhost:8080/journals/${state.journalId}/items/${state.activeJournalItemId}`, {
                             method: "PUT",
                             headers: {
                                 Accept: "application/json",
                                 "Content-type": "application/json"
                             },
-                            body: JSON.stringify({
-                                accountDebit: state.inputs.accountDebit,
-                                accountCredit: state.inputs.accountCredit,
-                                amountDebit: state.inputs.amountDebit,
-                                amountCredit: state.inputs.amountCredit,
-                                document: state.inputs.documentKey,
-                                date: toDate(state.inputs.documentDate),
-                                company: state.inputs.companyId,
-                            })
+                            body: JSON.stringify(item)
                         })
                         .then(res => res.json()) // Return data.
                         .then(result => {
-                            console.log(result)
+
                             // display error if failed
-                            if (result.status === 200) {
+                            if (result.status == 200) {
                                 update({
                                     action: "GET_JOURNAL_ITEMS"
                                 });
+
+                                // state.items = state.items.map(obj => {
+                                //     // Can't use === because obj vs string
+                                //     if (obj.id == state.activeJournalItemId) {
+                                //         console.log("this one")
+                                //         console.log(item)
+                                //         return item
+                                //     } else {
+                                //         return obj
+                                //     }
+                                // });
+
                                 update({
                                     action: "CLEAR_INPUTS_JOURNAL_ITEM"
                                 });
+                                // view(state);
                             }
                         })
                         .catch(err => err);

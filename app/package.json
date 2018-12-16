@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.5.0",
-    "flatpickr": "^4.5.2"
+    "flatpickr": "^4.5.2",
+    "virtual-dom": "^2.1.1"
   }
 }
