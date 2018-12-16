@@ -14,8 +14,11 @@ app.all("/*", function (req, res, next) {
         "X-Requested-With, Content-Type, Accept"
     );
     res.header("Access-Control-Allow-Methods", "POST, GET");
+    // res.header("Content-Type", 'application/json');
     next();
 });
+
+app.set('json spaces', 2) // Provides json response indentation
 
 app.use(bodyParser.urlencoded({
         extended: false

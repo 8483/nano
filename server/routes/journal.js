@@ -11,6 +11,7 @@ var config = {
     multipleStatements: true
 };
 
+// TODO: Add pagination
 // GET all journals - array of objects
 router.get("/journals", function (req, res) {
 
@@ -32,6 +33,7 @@ router.get("/journals", function (req, res) {
                 (select sum(amount_credit) from journal_item ji where ji.journal_id = j.id) as credit
             from journal j
         ) t1
+        order by journal_key desc
     `;
 
     connection.query(query, function (error, results, fields) {
