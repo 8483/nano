@@ -5,7 +5,7 @@ require('../../utils/utils.js')();
 
 var config = {
     user: "root",
-    password: "",
+    //password: "",
     host: "localhost",
     database: "nano",
     multipleStatements: true

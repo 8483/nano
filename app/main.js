@@ -15,7 +15,7 @@ function createMainWindow() {
     // mainWindow.maximize();
     mainWindow.loadURL(`file://${__dirname}/index.html`);
     mainWindow.webContents.openDevTools();
-    mainWindow.on("closed", function() {
+    mainWindow.on("closed", function () {
         mainWindow = null;
     });
     // Build menu
@@ -31,7 +31,7 @@ function createMainWindow() {
     loginWindow.loadURL(`file://${__dirname}/modules/login.html`);
     loginWindow.webContents.openDevTools();
     loginWindow.setMenu(null);
-    loginWindow.on("closed", function() {
+    loginWindow.on("closed", function () {
         loginWindow = null;
         mainWindow = null;
     });
@@ -58,7 +58,7 @@ function createNewWindow(windowName) {
         windows.x += 100;
         windows.y += 100;
         newWindow.setMenu(null); // Remove menu from child windows
-        newWindow.on("closed", function() {
+        newWindow.on("closed", function () {
             windows.opened = windows.opened.filter(win => win != windowName); // Return only open windows
             newWindow = null;
             windows.x -= 100;
@@ -84,6 +84,12 @@ const mainMenuTemplate = [
                 label: "Налози",
                 click() {
                     openWindow("journals");
+                }
+            },
+            {
+                label: "Todo",
+                click() {
+                    openWindow("todo");
                 }
             }
         ]

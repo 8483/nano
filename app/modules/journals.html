@@ -20,7 +20,7 @@
         // TODO: Get all the necessary initializing background data for modals, like accounts, companies 
         // and pass them to the modals to avoid making requests in them
 
-        function openModal(data) {
+        function openModal(activeJournalId) {
             let win = new remote.BrowserWindow({
                 parent: remote.getCurrentWindow(),
                 // modal: true, // Makes it fixed/immovable i.e. modal
@@ -38,7 +38,7 @@
 
             // TODO: Track the open windows in a main object with ipcmain messages to prevent duplicate openings.
             win.once("show", function () {
-                win.webContents.send("foo", data);
+                win.webContents.send("open-modal-journal", activeJournalId);
             });
 
             win.once("ready-to-show", () => {
@@ -89,7 +89,7 @@
                         `<tr 
                             data-id="${data[i].id}" 
                             ${data[i].id == state.activeJournalId ? `class="active-row"` : ""} 
-                            ${data[i].balance != 0 ? `style="background: red"`: ""}
+                            ${data[i].balance != 0 ? `style="background: red"` : ""}
                             >
                             <td>${data[i].journalKey}</td>
                             <td>${data[i].journalTypeId}</td>
